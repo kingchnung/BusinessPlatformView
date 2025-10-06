@@ -1,12 +1,12 @@
-import { Children } from "react";
+
 import MainLayout from "../layouts/MainLayout";
 
 
-const MainPage = ({Children}) => {
+const MainPage = ({children}) => {
     return (
         <>
             <MainLayout>
-                {Children}
+                {children}
             </MainLayout>
         </>
     )
