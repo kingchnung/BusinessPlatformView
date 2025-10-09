@@ -1,22 +1,29 @@
-// import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-// const initState = {
-//     email:''
-// };
+const initialState = {
+  user: {
+    userId: 1001,
+    roleId: 10,
+    empId: 1001,
+    username: "tester",
+  },
+  token: "mock-jwt-token-123",
+};
 
+const loginSlice = createSlice({
+  name: "login",
+  initialState,
+  reducers: {
+    setUser: (state, action) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+    },
+    clearUser: (state) => {
+      state.user = null;
+      state.token = null;
+    },
+  },
+});
 
-// const loginSlice = createSlice({
-//     name:'LoginSlice',
-//     initialState:initState,
-//     reducers:{
-//         login:(state, action) => {
-//             console.log("로그인...");
-//         },
-//         logout:(state, action) => {
-//             console.log("로그아웃...");
-//         }
-//     }
-// });
-
-// export const {login, logout} = loginSlice.actions;
-// export default loginSlice.reducer;
+export const { setUser, clearUser } = loginSlice.actions;
+export default loginSlice.reducer;
