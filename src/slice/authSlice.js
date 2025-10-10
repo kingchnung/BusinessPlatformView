@@ -1,8 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  user: null, // { userId, empId, roleId, departmentId, name }
-  token: null,
+  user: null,   // { userId, empId, roleId, departmentId, name }
+  token: null,  // JWT or mock token
   isAuthenticated: false,
 };
 

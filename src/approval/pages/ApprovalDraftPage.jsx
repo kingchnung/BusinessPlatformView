@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import MainPage from "./MainPage";
-import ApprovalForm from "../components/approval/ApprovalForm";
-import ApprovalList from "../components/approval/ApprovalList";
+import MainPage from "../../pages/MainPage";
+import ApprovalForm from "../component/ApprovalForm";
+import ApprovalList from "../component/ApprovalList";
 import { Row, Col } from "antd";
 
 const ApprovalDraftPage = () => {

@@ -1,15 +1,14 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
-import ApprovalDraftPage from "../pages/ApprovalDraftPage";
-import MockLoginPage from "../pages/MockLoginPage";
+
 
 const Loading = <div>Loading...</div>;
 
 const Main = lazy(() => import("../pages/MainPage"));
-const MockLogin = lazy(() => import("../pages/MockLoginPage"))
-const ApprovalList = lazy(() => import("../pages/ApprovalListPage"));
-const ApprovalDraft = lazy(() => import("../pages/ApprovalDraftPage"));
-const ApprovalDetail = lazy(() => import("../pages/ApprovalDetailPage"));
+const Login = lazy(() => import("../pages/LoginPage"));
+const ApprovalList = lazy(() => import("../approval/pages/ApprovalListPage"));
+const ApprovalDraft = lazy(() => import("../approval/pages/ApprovalDraftPage"));
+const ApprovalDetail = lazy(() => import("../approval/pages/ApprovalDetailPage"));
 
 const root = createBrowserRouter([
   {
@@ -25,8 +24,8 @@ const root = createBrowserRouter([
     element: <Suspense fallback={Loading}><ApprovalDraft /></Suspense>,
   },
   {
-    path: "/mockLogin",
-    element: <Suspense fallback={Loading}><MockLogin /></Suspense>,
+    path: "/login",
+    element: <Suspense fallback={Loading}><Login /></Suspense>,
   },
   {
     path: "/approval/:id",

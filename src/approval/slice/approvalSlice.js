@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { draftApproval, getApprovalList } from "../api/approvalApi";
+import { draftApproval, getApprovalList } from "../../api/approvalApi";
 
 export const fetchApprovals = createAsyncThunk(
     "/approvals",

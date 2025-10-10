@@ -1,11 +1,11 @@
 // import authReducer from "./slice/authSlice";
 import {configureStore} from '@reduxjs/toolkit';
-import approvalReducer from "./slice/approvalSlice";
-import loginReducer from "./slice/loginSlice";
+import approvalReducer from "./approval/slice/approvalSlice";
+import authReducer from "./slice/authSlice";
 
 const store = configureStore({
     reducer : {
-        login : loginReducer,
+        auth : authReducer,
         approval : approvalReducer,
         
     }
