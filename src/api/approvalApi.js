@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosInstance from "../common/axiosInstance";
 import { message } from "antd";
 
@@ -137,23 +138,29 @@ export const rejectDocument = async (docId, reason) => {
 };
 
 /**
- * 7️⃣ 파일 업로드
+ * 7️⃣ 파일 업로드 (문서 ID 있을 수도 / 없을 수도 있음)
  */
-export const uploadFile = async (file) => {
+export const uploadFile = async (file, docId) => {
   try {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await axiosInstance.post("/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+    // 문서ID가 있으면 함께 전송
+    if (docId) formData.append("docId", docId);
+
+    const response = await axiosInstance.post("/attachments", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
 
-    message.success(`${file.name} 업로드 성공`);
-    console.log("📎 파일 업로드 성공:", response.data);
+    console.log("📎 업로드 성공:", response.data);
+    message.success(`${file.name} 업로드 완료`);
     return response.data;
   } catch (error) {
+    console.error("❌ 업로드 실패:", error);
     message.error(`${file.name} 업로드 실패`);
-    handleApiError(error);
+    throw error;
   }
 };
 
@@ -182,10 +189,14 @@ export const downloadFile = async (id) => {
   }
 };
 
-const getFileList = async (docId, page = 1, size = 10) => {
-  const res = await axiosInstance.get(`/upload/list/${docId}`, {
-    params: { page, size },
-  });
-  console.log("📎 첨부파일 목록:", res.data.dtoList);
-  return res.data;
+export const getFileList = async (docId) => {
+  try {
+    const res = await axiosInstance.get(`/attachments/list/${docId}`);
+    console.log("📎 첨부파일 목록:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("❌ 첨부파일 목록 조회 실패:", error);
+    message.error("첨부파일 목록 조회 실패");
+    throw error;
+  }
 };

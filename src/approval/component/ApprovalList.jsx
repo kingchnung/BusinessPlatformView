@@ -91,10 +91,10 @@ const ApprovalList = ({ refreshKey = 0 }) => {
           status === "IN_PROGRESS"
             ? "orange"
             : status === "APPROVED"
-            ? "green"
-            : status === "REJECTED"
-            ? "red"
-            : "gray";
+              ? "green"
+              : status === "REJECTED"
+                ? "red"
+                : "gray";
         return <span style={{ color, fontWeight: 600 }}>{status}</span>;
       },
     },
