@@ -45,7 +45,7 @@ const LoginSection = () => {
   const handleLogin = async (values) => {
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:8080/api/member/login", values);
+      const res = await axios.post("http://localhost:8080/api/auth/login", values);
 
       localStorage.setItem("token", res.data.accessToken);
       localStorage.setItem("user", JSON.stringify(res.data));
