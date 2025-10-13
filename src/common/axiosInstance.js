@@ -9,12 +9,15 @@ const axiosInstance = axios.create({
 });
 
 // Redux store의 토큰을 매 요청 시 자동으로 포함
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use(
+  (config) => {
   const token = localStorage.getItem("token");
   if(token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+},
+  (error) => Promise.reject(error)
+);
 
 export default axiosInstance;

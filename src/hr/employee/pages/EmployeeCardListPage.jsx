@@ -16,8 +16,6 @@ const EmployeeCardListPage = () => {
     dispatch(getEmployees());
   }, [dispatch]);
 
-  console.log("🧾 employees from redux:", employees);
-
   const employeeList = Array.isArray(employees)
     ? employees
     : employees?.dtoList || [];

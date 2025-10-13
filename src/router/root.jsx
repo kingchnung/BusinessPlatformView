@@ -14,7 +14,7 @@ const ApprovalDetail = lazy(() => import("../approval/pages/ApprovalDetailPage")
 const OrgChart = lazy(() => import("../hr/employee/pages/OrgChartPage"));
 const EmployeeCardList = lazy(() => import("../hr/employee/pages/EmployeeCardListPage"));
 const EmployeeDetail = lazy(() => import("../hr/employee/pages/EmployeeDetailPage"));
-
+const EmployeeCardAdd = lazy(()=>import("../hr/employee/pages/EmployeeCardAddPage"));
 
 const root = createBrowserRouter([
   {
@@ -62,13 +62,13 @@ const root = createBrowserRouter([
         </Main>
       </Suspense>
     )
-  }
-  // {
-  //   path: "/hr/employee/cards/add",
-  //   element: (
-  //     <Suspense fallback={Loading}><Main><EmployeeCardAdd /></Main></Suspense>
-  //   ),
-  // },
+  },
+  {
+    path: "/hr/employee/cards/add",
+    element: (
+      <Suspense fallback={Loading}><Main><EmployeeCardAdd /></Main></Suspense>
+    ),
+  },
   // {
   //   path: "/hr/employee/cards/delete",
   //   element: (
