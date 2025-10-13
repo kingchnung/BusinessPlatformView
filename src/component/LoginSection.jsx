@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
+import { jwtDecode } from "jwt-decode";
 
 const LoginSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,11 +46,40 @@ const LoginSection = () => {
   const handleLogin = async (values) => {
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:8080/api/member/login", values);
+      const res = await axios.post("http://localhost:8080/api/auth/login", values);
+      console.log("login response:", res.data);
+      
+      const token = res.data.accessToken;
+      const refreshToken = res.data.refreshToken;
+      const authorities = res.data.roles?.map((r) => r.authority) || [];
 
-      localStorage.setItem("token", res.data.accessToken);
+      console.log("🔑 accessToken:", token);
+      console.log("🧾 전체 authorities:", authorities);
+
+      if (!token || typeof token != "string") {
+        throw new Error("유효하지 않은 토큰입니다.");
+      }
+
+      const userRoles = authorities.filter((auth) => auth.startsWith("ROLE_"));
+      const userPermissions = authorities.filter((auth) => !auth.startsWith("ROLE_"));
+
+      console.log("🏷️ 역할 목록 (Roles):", userRoles);
+      console.log("🔐 권한 목록 (Permissions):", userPermissions);
+
+      const decoded = jwtDecode(token);
+      console.log("🧩 decoded token:", decoded);
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("roles", JSON.stringify(userRoles));
+      localStorage.setItem("permissions", JSON.stringify(userPermissions));
       localStorage.setItem("user", JSON.stringify(res.data));
 
+      console.log("💾 저장된 roles:", JSON.parse(localStorage.getItem("roles")));
+      console.log("💾 저장된 permissions:", JSON.parse(localStorage.getItem("permissions")));
+      console.log("💾 저장된 user:", JSON.parse(localStorage.getItem("user")));
+      
+      
       dispatch(
         loginSuccess({
           token: res.data.accessToken,
