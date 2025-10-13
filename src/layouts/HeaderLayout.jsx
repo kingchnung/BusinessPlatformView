@@ -10,7 +10,7 @@ const HeaderLayout = () => {
 
   const menuItems = [
     { key: "Main", label: "Main" },
-    { key: "Employee", label: "Employee" },
+    { key: "hr", label: "hr" },
     { key: "Sales", label: "Sales" },
     { key: "Project", label: "Project" },
     { key: "Groupware", label: "Groupware" },
