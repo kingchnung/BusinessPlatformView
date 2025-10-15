@@ -6,6 +6,7 @@ const axiosInstance = axios.create({
 
 // ✅ JWT 자동 첨부
 axiosInstance.interceptors.request.use(
+  
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -21,6 +22,8 @@ axiosInstance.interceptors.request.use(
 
     return config;
   },
+  (error) => Promise.reject(error)
+,
   (error) => Promise.reject(error)
 );
 

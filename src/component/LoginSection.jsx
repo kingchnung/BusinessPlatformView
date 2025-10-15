@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Button,
-  Form,
-  Input,
-  Modal,
-  message,
-  Space,
-  Popconfirm,
+import {  Button,  Form,  Input,  Modal,  message,  Space,  Popconfirm,
 } from "antd";
 import {
   LoginOutlined,

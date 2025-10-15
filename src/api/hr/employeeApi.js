@@ -69,6 +69,11 @@ export const updateEmployee = async (empId, data) => {
   }
 };
 
+export const updateMyInfo = async (values) => {
+  const res = await axiosInstance.put(`/employees/me`, values);
+  return res.data;
+};
+
 /** 5️⃣ 직원 삭제 */
 export const deleteEmployee = async (empId) => {
   try {
