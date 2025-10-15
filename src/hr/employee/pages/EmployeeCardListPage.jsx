@@ -28,7 +28,7 @@ const EmployeeCardListPage = () => {
   return (
     <Spin spinning={loading}>
       <Card
-        title="인사카드 조회 (관리자)"
+        title="인사카드 조회"
         style={{
           margin: 20,
           borderRadius: 12,

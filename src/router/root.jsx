@@ -15,6 +15,9 @@ const OrgChart = lazy(() => import("../hr/employee/pages/OrgChartPage"));
 const EmployeeCardList = lazy(() => import("../hr/employee/pages/EmployeeCardListPage"));
 const EmployeeDetail = lazy(() => import("../hr/employee/pages/EmployeeDetailPage"));
 const EmployeeCardAdd = lazy(()=>import("../hr/employee/pages/EmployeeCardAddPage"));
+const EmployeMyEdit = lazy(()=>import("../hr/employee/pages/EmployeeMyEditPage"));
+const EmployeMySelect = lazy(()=>import("../hr/employee/pages/EmployeeSelectPage"));
+const EmployeEditor = lazy(()=>import("../hr/employee/pages/EmployeeEditFormPage"));
 
 const root = createBrowserRouter([
   {
@@ -69,6 +72,36 @@ const root = createBrowserRouter([
       <Suspense fallback={Loading}><Main><EmployeeCardAdd /></Main></Suspense>
     ),
   },
+  {
+    path : "hr/employee/cards/edit",
+    element : (
+      <Suspense fallback={Loading}>
+        <Main>
+          <EmployeMyEdit />
+        </Main>
+      </Suspense>
+    )
+  },
+  {
+    path : "hr/employee/cards/edit/select",
+    element : (
+      <Suspense fallback={Loading}>
+        <Main>
+          <EmployeMySelect />
+        </Main>
+      </Suspense>
+    )
+  },
+  {
+    path : "hr/employee/cards/edit/:empId",
+    element : (
+      <Suspense fallback={Loading}>
+        <Main>
+          <EmployeEditor />
+        </Main>
+      </Suspense>
+    )
+  }
   // {
   //   path: "/hr/employee/cards/delete",
   //   element: (

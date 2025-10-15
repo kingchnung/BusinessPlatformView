@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Form, Input, Select, Button, Row, Col, DatePicker, message, Spin } from "antd";
+import {
+  Form, Input, Select, Button, Row, Col, DatePicker, message, Spin
+} from "antd";
 import dayjs from "dayjs";
 import axiosInstance from "../../../common/axiosInstance";
 import { fetchPositions } from "../../../api/hr/positionAPI";
@@ -10,29 +12,31 @@ const { Option } = Select;
 const EmployeeCardForm = ({ onSubmit, loading }) => {
   const [form] = Form.useForm();
   const [departments, setDepartments] = useState([]);
+  const [allDepartments, setAllDepartments] = useState([]);
   const [teams, setTeams] = useState([]);
   const [positions, setPositions] = useState([]);
-  const [grades, setGrades] = useState([]); // 🔹 추가
-  const [selectedDept, setSelectedDept] = useState(null);
+  const [grades, setGrades] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  /** ✅ 초기 데이터 로드 */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ✅ 부서 목록
         const deptRes = await axiosInstance.get("/departments");
-        const allDepartments = deptRes.data;
-        const mainDepts = allDepartments.filter((d) => !d.parentDeptId);
-        setDepartments(mainDepts);
+        const data = deptRes.data;
+        setAllDepartments(data);
 
-        // ✅ 직급 목록 (CEO 제외)
+        const teamOnly = data.filter((dept)=>{
+          const lastDigit = parseInt(dept.deptCode.slice(-1));
+          return lastDigit !== 0;
+        });
+        setTeams(teamOnly); // 팀만 저장
+        setDepartments(data.filter((d) => !d.parentDeptId)); // 상위부서만 저장
+
         const positionData = await fetchPositions();
-        setPositions(positionData.filter((p) => p.positionName !== "CEO"));
+        setPositions(positionData);
 
-        // ✅ 직위(Grade) 목록
         const gradeData = await fetchGrades();
-        setGrades(gradeData.filter((g) => g.gradeName !== "임원"));
+        setGrades(gradeData);
 
         setIsLoading(false);
       } catch (err) {
@@ -43,52 +47,101 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
     fetchData();
   }, []);
 
-  /** ✅ 부서 선택 시 팀 목록 필터링 */
-  const handleDeptChange = (deptId) => {
-    setSelectedDept(deptId);
-    axiosInstance.get("/departments").then((res) => {
-      const filtered = res.data.filter((d) => d.parentDeptId === deptId);
-      setTeams(filtered);
-      form.setFieldsValue({ teamId: null });
+  /** ✅ 팀 선택 시 부서 자동 지정 + 사번 자동 생성 */
+  const handleTeamChange = async (teamId) => {
+    const selectedTeam = teams.find((d) => d.deptId === teamId);
+    if (!selectedTeam) return;
+    const upperDeptCode = `${Math.floor(parseInt(selectedTeam.deptCode)/10)*10}`;
+    const parentDept = allDepartments.find(
+      (d) => d.deptCode === upperDeptCode);
+    
+    // 🔹 부서 자동 선택
+    if (parentDept) {
+      form.setFieldsValue({ deptId: parentDept.deptId });
+    };
+
+    // 🔹 사번 자동 생성 (예: 회사코드 50 + 부서코드 + 001)
+    try{
+    const res = await axiosInstance.get(`/employees/next-no/${selectedTeam.deptCode}`);
+    const empNo = res.data.EmpNo;
+    form.setFieldsValue({ 
+      empNo ,
+      email: `${empNo}@bizmate.com`,
     });
+  } catch (err){
+    console.error(err);
+    message.error("사번생성실패")
+  }
   };
+
+    
+
+
+  /** ✅ 직위 선택 시 직급 자동 지정 */
+  const handleGradeChange = (gradeCode) => {
+    const selectedGrade = grades.find((g) => g.gradeCode === gradeCode);
+    if (!selectedGrade) return;
+
+    let matchedPosition = null;
+    if (
+      selectedGrade.gradeName.includes("사원") ||
+      selectedGrade.gradeName.includes("대리")
+    ) {
+      matchedPosition = positions.find((p) => p.positionName === "사원");
+    } else if (
+      selectedGrade.gradeName.includes("부장") ||
+      selectedGrade.gradeName.includes("차장")
+    ) {
+      matchedPosition = positions.find((p) => p.positionName === "팀장");
+    }
+
+    if (matchedPosition) {
+      form.setFieldsValue({ positionCode: matchedPosition.positionCode });
+    }
+  };
+  const padZero =(num)=>String(num).padStart(2, '0');
 
   /** ✅ 제출 */
   const handleFinish = (values) => {
-    // ⚙️ 부서 코드 가져오기
-    const selectedDeptObj = departments.find((d) => d.deptId === values.deptId);
-    const selectedTeamObj = teams.find((t) => t.deptId === values.teamId);
-    const deptCode = selectedTeamObj
-      ? selectedTeamObj.deptCode
-      : selectedDeptObj?.deptCode;
-
-    const email = `${values.empName}.${dayjs().format("YYMMDD")}@bizmate.com`;
+    const selectedTeam = allDepartments.find((t) => t.deptId === values.teamId);
+    const deptCode = selectedTeam ? selectedTeam.deptCode : null;
+    const birthDateValue = `${values.birthYear}-${padZero(values.birthMonth)}-${padZero(values.birthDay)}`;
+    const email = `${values.empNo}@bizmate.com`;
 
     const payload = {
+      empNo: values.empNo,
       empName: values.empName,
       gender: values.gender,
-      birthDate: values.birthDate ? dayjs(values.birthDate).format("YYYY-MM-DD") : null,
+      birthDate: birthDateValue,
       phone: values.phone,
       email,
       address: values.address,
-      deptCode: deptCode, 
+      deptCode,
       positionCode: values.positionCode,
       gradeCode: values.gradeCode,
-      startDate: values.startDate ? dayjs(values.startDate).format("YYYY-MM-DD") : null,
+      startDate: values.startDate
+        ? dayjs(values.startDate).format("YYYY-MM-DD")
+        : null,
     };
 
-    console.log("📤 등록 요청 데이터:", payload);
+    console.log("📤 등록 요청:", payload);
     onSubmit(payload);
   };
+  
 
-  if (isLoading) {
+  if (isLoading)
     return (
-        <div style={{ textAlign: "center", padding: "40px 0"}}>
-            <Spin size="large" />
-            <p style={{ marginTop: 8, color: "#888" }}>등록폼 초기화 중...</p>
-        </div>
+      <div style={{ textAlign: "center", padding: "40px 0" }}>
+        <Spin size="large" />
+        <p>등록폼 초기화 중...</p>
+      </div>
     );
-  }
+
+  // 연/월/일 select
+  const years = Array.from({ length: 60 }, (_, i) => dayjs().year() - i - 18);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
   return (
     <Form
       form={form}
@@ -96,7 +149,13 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
       onFinish={handleFinish}
       style={{ maxWidth: 850, margin: "0 auto" }}
     >
+      {/* 사번 / 이름 */}
       <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item label="사번" name="empNo">
+            <Input readOnly placeholder="자동 생성" />
+          </Form.Item>
+        </Col>
         <Col span={12}>
           <Form.Item
             label="이름"
@@ -106,6 +165,10 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
             <Input placeholder="직원 이름" />
           </Form.Item>
         </Col>
+      </Row>
+
+      {/* 성별 / 생년월일 */}
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="성별"
@@ -118,53 +181,50 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
             </Select>
           </Form.Item>
         </Col>
+        <Col span={12}>
+          <Form.Item label="생년월일" required>
+            <Input.Group compact>
+              <Form.Item name="birthYear" noStyle>
+                <Select placeholder="연도" style={{ width: "33%" }}>
+                  {years.map((y) => (
+                    <Option key={y} value={y}>
+                      {y}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="birthMonth" noStyle>
+                <Select placeholder="월" style={{ width: "33%" }}>
+                  {months.map((m) => (
+                    <Option key={m} value={m}>
+                      {m}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="birthDay" noStyle>
+                <Select placeholder="일" style={{ width: "34%" }}>
+                  {days.map((d) => (
+                    <Option key={d} value={d}>
+                      {d}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Input.Group>
+          </Form.Item>
+        </Col>
       </Row>
 
+      {/* 팀 / 부서 */}
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
-            label="생년월일"
-            name="birthDate"
-            rules={[{ required: true, message: "생년월일을 입력하세요." }]}
+            label="팀"
+            name="teamId"
+            rules={[{ required: true, message: "팀을 선택하세요." }]}
           >
-            <DatePicker style={{ width: "100%" }} />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="전화번호" name="phone">
-            <Input placeholder="010-1234-5678" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      {/* ✅ 부서 / 팀 선택 */}
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            label="부서"
-            name="deptId"
-            rules={[{ required: true, message: "부서를 선택하세요." }]}
-          >
-            <Select
-              placeholder="부서를 선택하세요"
-              onChange={handleDeptChange}
-              allowClear
-            >
-              {departments.map((d) => (
-                <Option key={d.deptId} value={d.deptId}>
-                  {d.deptName}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="팀" name="teamId">
-            <Select
-              placeholder="팀을 선택하세요"
-              disabled={!selectedDept}
-              allowClear
-            >
+            <Select placeholder="팀 선택" onChange={handleTeamChange}>
               {teams.map((t) => (
                 <Option key={t.deptId} value={t.deptId}>
                   {t.deptName}
@@ -173,33 +233,29 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
             </Select>
           </Form.Item>
         </Col>
-      </Row>
 
-      {/* ✅ 직급 / 직위 */}
-      <Row gutter={16}>
         <Col span={12}>
-          <Form.Item
-            label="직급"
-            name="positionCode"
-            rules={[{ required: true, message: "직급을 선택하세요." }]}
-          >
-            <Select placeholder="직급 선택">
-              {positions.map((p) => (
-                <Option key={p.positionCode} value={p.positionCode}>
-                  {p.positionName}
+          <Form.Item label="부서" name="deptId">
+            <Select placeholder="팀 선택 시 자동 설정" disabled>
+              {departments.map((d) => (
+                <Option key={d.deptId} value={d.deptId}>
+                  {d.deptName}
                 </Option>
               ))}
             </Select>
           </Form.Item>
         </Col>
+      </Row>
 
+      {/* 직위 / 직급 */}
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="직위"
             name="gradeCode"
             rules={[{ required: true, message: "직위를 선택하세요." }]}
           >
-            <Select placeholder="직위 선택">
+            <Select placeholder="직위 선택" onChange={handleGradeChange}>
               {grades.map((g) => (
                 <Option key={g.gradeCode} value={g.gradeCode}>
                   {g.gradeName}
@@ -208,12 +264,43 @@ const EmployeeCardForm = ({ onSubmit, loading }) => {
             </Select>
           </Form.Item>
         </Col>
+
+        <Col span={12}>
+          <Form.Item label="직급" name="positionCode">
+            <Select placeholder="직위 선택 시 자동 설정" disabled>
+              {positions.map((p) => (
+                <Option key={p.positionCode} value={p.positionCode}>
+                  {p.positionName}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
       </Row>
 
+      {/* 이메일 / 전화번호 */}
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item label="이메일" name="email">
+            <Input placeholder="자동 생성" readOnly />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item 
+          label="전화번호" 
+          name="phone"
+          rules={[{ required: true, message: "전화번호는 필수항목입니다." }]}>
+            <Input placeholder="010-1234-5678" />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      {/* 주소 */}
       <Form.Item label="주소" name="address">
         <Input.TextArea rows={2} placeholder="서울시 강남구 ..." />
       </Form.Item>
 
+      {/* 입사일 */}
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item

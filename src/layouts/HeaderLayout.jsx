@@ -9,11 +9,12 @@ const HeaderLayout = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { key: "Main", label: "Main" },
+    { key: "Main", label: "HOME" },
     { key: "hr", label: "직원관리" },
-    { key: "Sales", label: "Sales" },
-    { key: "Project", label: "Project" },
-    { key: "Groupware", label: "Groupware" },
+    { key: "Sales", label: "매출" },
+    { key: "Project", label: "프로젝트" },
+    { key: "Groupware", label: "전자결재" },
+    { key: "board", label : "사내게시판"},
   ];
 
   return (

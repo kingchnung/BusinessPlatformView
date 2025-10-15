@@ -29,7 +29,7 @@ export default function Login() {
       localStorage.setItem("token", accessToken);
 
       message.success(`${empName || user}님 환영합니다!`);
-      navigate("/approvals");
+      navigate("/");
     } catch (err) {
       console.error("로그인 실패:", err);
       message.error("아이디 또는 비밀번호가 올바르지 않습니다.");
