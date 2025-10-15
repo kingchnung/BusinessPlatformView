@@ -7,6 +7,7 @@ import { UploadOutlined, PlusOutlined, MinusCircleOutlined, } from "@ant-design/
 import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../../api/groupware/approvalApi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchEmployees } from "../../../api/hr/employeeApi";
+import { useSelector } from "react-redux";
 
 const { TextArea } = Input;
 
@@ -19,26 +20,11 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
   const [uploadedFiles, setUploadedFiles] = useState([]); // 서버 응답 DTO
   const [fileList, setFileList] = useState([]); // UI 표시용
   const [currentDocId, setCurrentDocId] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   const token = localStorage.getItem("token");
   const { docId } = useParams(); // ✅ /approvals/:docId/resubmit 에서 문서 ID 받음
   const location = useLocation();
+  const { user : currentUser } = useSelector((state) => state.auth);
 
-  /* ===========================================================
-     ✅ 로그인 사용자 정보 로드
-     =========================================================== */
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setCurrentUser(parsed);
-        console.log("로그인 사용자 로드:", parsed);
-      } catch (e) {
-        console.error("User JSON 파싱 실패:", e);
-      }
-    }
-  }, []);
 
   /* ===========================================================
      ✅ 직원 목록 로드
@@ -49,7 +35,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         const data = await fetchEmployees();
         const options = data.map((emp) => ({
           label: `${emp.empName} (${emp.deptName})`,
-          value: emp.username,
+          value: emp.empNo,
         }));
         setEmployeeOptions(options);
       } catch (err) {
@@ -73,7 +59,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
             ? dayjs(data.docContent.lastWorkDate)
             : null,
           approvalLine: data.approvalLine?.map((a) => ({
-            approverId: a.approverCode, // ✅ 사번으로 변환
+            approverId: a.approverId, // ✅ 사번으로 변환
           })),
         });
         setUploadedFiles(data.attachments || []);
