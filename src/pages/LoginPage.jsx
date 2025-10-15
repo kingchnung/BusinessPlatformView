@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, Input, Button, Typography, Form, message } from "antd";
 import axios from "axios";
 import { loginSuccess } from "../slice/authSlice";
+import { jwtDecode } from "jwt-decode";
 
 const { Title, Text } = Typography;
 
@@ -22,14 +23,26 @@ export default function Login() {
         password,
       });
 
-      const { accessToken, empName, username: user } = res.data;
+      const { accessToken } = res.data;
 
-      // ✅ Redux + localStorage 저장
-      dispatch(loginSuccess({ user: res.data, token: accessToken }));
       localStorage.setItem("token", accessToken);
 
-      message.success(`${empName || user}님 환영합니다!`);
-      navigate("/approvals");
+      const decoded = jwtDecode(accessToken);
+
+      const userData = {
+        userId : decoded.uid,
+        username : decoded.username,
+        empName : decoded.empName,
+        email : decoded.email || null,
+        roles : decoded.roles || [],
+      }
+
+      // ✅ localStorage + Redux 저장
+      localStorage.setItem("user", JSON.stringify(userData));
+      dispatch(loginSuccess({ user: userData, token: accessToken }));
+
+      message.success(`${userData.empName || userData.username}님 환영합니다!`);
+      navigate("/");
     } catch (err) {
       console.error("로그인 실패:", err);
       message.error("아이디 또는 비밀번호가 올바르지 않습니다.");

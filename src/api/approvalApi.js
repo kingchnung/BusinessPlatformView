@@ -91,6 +91,14 @@ export const submitDocument = async (data) => {
   }
 };
 
+// ✅ 재상신 요청
+export const resubmitDocument = async (docId, dto) => {
+
+  const res = await axiosInstance.put(`/approvals/${docId}/resubmit`, dto);
+
+  return res.data;
+};
+
 /**
  * 4️⃣ 문서 임시저장 (Draft)
  */

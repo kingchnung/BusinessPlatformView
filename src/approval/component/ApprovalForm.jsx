@@ -1,31 +1,17 @@
 import React, { useState, useEffect } from "react";
+import dayjs from "dayjs";
 import {
-  Form,
-  Input,
-  Button,
-  Card,
-  Space,
-  message,
-  DatePicker,
-  Select,
-  Upload,
+  Form, Input, Button, Card, Space, message, DatePicker, Select, Upload,
 } from "antd";
-import {
-  UploadOutlined,
-  PlusOutlined,
-  MinusCircleOutlined,
-} from "@ant-design/icons";
-import {
-  draftApproval,
-  submitDocument,
-  uploadFile,
-} from "../../api/approvalApi";
-import { useNavigate } from "react-router-dom";
+import { UploadOutlined, PlusOutlined, MinusCircleOutlined, } from "@ant-design/icons";
+import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../api/approvalApi";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchUsers } from "../../api/userApi";
+import { current } from "@reduxjs/toolkit";
 
 const { TextArea } = Input;
 
-const ApprovalForm = ({ onUpdate }) => {
+const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false); // ✅ 업로드 중 여부 추가
   const [form] = Form.useForm();
@@ -36,6 +22,8 @@ const ApprovalForm = ({ onUpdate }) => {
   const [currentDocId, setCurrentDocId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const token = localStorage.getItem("token");
+  const { docId } = useParams(); // ✅ /approvals/:docId/resubmit 에서 문서 ID 받음
+  const location = useLocation();
 
   /* ===========================================================
      ✅ 로그인 사용자 정보 로드
@@ -61,8 +49,8 @@ const ApprovalForm = ({ onUpdate }) => {
       try {
         const data = await fetchUsers();
         const options = data.map((emp) => ({
-          label: `${emp.empName} (${emp.empId})`,
-          value: emp.empId.toString(),
+          label: `${emp.empName} (${emp.username})`,
+          value: emp.username,
         }));
         setEmployeeOptions(options);
       } catch (err) {
@@ -72,6 +60,28 @@ const ApprovalForm = ({ onUpdate }) => {
     };
     loadEmployees();
   }, []);
+
+  useEffect(() => {
+    if (isResubmit) {
+      const data = initialData || location.state; // ✅ props 또는 navigate state 사용
+      if (data) {
+        console.log("📄 재상신 문서 로드:", data);
+        form.setFieldsValue({
+          title: data.title,
+          docType: data.docType,
+          reason: data.docContent?.reason,
+          lastWorkDate: data.docContent?.lastWorkDate
+            ? dayjs(data.docContent.lastWorkDate)
+            : null,
+          approvalLine: data.approvalLine?.map((a) => ({
+            approverId: a.approverCode, // ✅ 사번으로 변환
+          })),
+        });
+        setUploadedFiles(data.attachments || []);
+      }
+    }
+  }, [isResubmit, initialData, location.state]);
+
 
   /* ===========================================================
      ✅ 파일 업로드 (문서ID 없어도 임시 업로드 가능)
@@ -150,12 +160,14 @@ const ApprovalForm = ({ onUpdate }) => {
         },
         approvalLine: (values.approvalLine || []).map((a, idx) => ({
           order: idx + 1,
-          approverId: Number(a.approverId),
+          approverId: a.approverId,
           decision: "PENDING",
           comment: "",
         })),
         attachments: pureAttachments,
+
         empId: currentUser.empId,
+        username : currentUser.username,
         userId: currentUser.userId,
         roleId: currentUser.roleId || null,
         departmentId: currentUser.departmentId || null,
@@ -169,6 +181,8 @@ const ApprovalForm = ({ onUpdate }) => {
       const res =
         type === "draft"
           ? await draftApproval(data)
+          : type === "resubmit"
+          ? await resubmitDocument(docId, data)
           : await submitDocument(data);
 
       // ✅ 5️⃣ 결과 처리
@@ -209,10 +223,10 @@ const ApprovalForm = ({ onUpdate }) => {
     <Card
       title={
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>전자결재 작성</span>
+          <span>{isResubmit ? "🔁 반려 문서 재상신" : "전자결재 작성"}</span>
           {currentUser && (
             <span style={{ fontSize: "0.9rem", color: "#888" }}>
-              ✍ {currentUser.empName} 님, 작성 중입니다.
+              ✍ {currentUser.empName} {currentUser.username} 님, 작성 중입니다.
             </span>
           )}
         </div>
@@ -373,11 +387,13 @@ const ApprovalForm = ({ onUpdate }) => {
           <Button
             type="primary"
             htmlType="button"
-            onClick={() => handleAction("submit")}
+            onClick={() =>
+              handleAction(isResubmit ? "resubmit" : "submit")
+            }
             loading={loading || uploading}
             disabled={uploading}
           >
-            상신
+            {isResubmit ? "재상신" : "상신"}
           </Button>
         </Space>
       </Form>

@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
-import EmployeeDetailPage from "../hr/employee/pages/EmployeeDetailPage";
 
 const Loading = <div>Loading...</div>;
 
@@ -10,6 +9,7 @@ const Login = lazy(() => import("../pages/LoginPage"));
 const ApprovalList = lazy(() => import("../approval/pages/ApprovalListPage"));
 const ApprovalDraft = lazy(() => import("../approval/pages/ApprovalDraftPage"));
 const ApprovalDetail = lazy(() => import("../approval/pages/ApprovalDetailPage"));
+const Resubmit = lazy(() => import("../approval/pages/ResubmitPage"));
 
 const OrgChart = lazy(() => import("../hr/employee/pages/OrgChartPage"));
 const EmployeeCardList = lazy(() => import("../hr/employee/pages/EmployeeCardListPage"));
@@ -19,6 +19,10 @@ const EmployeeDetail = lazy(() => import("../hr/employee/pages/EmployeeDetailPag
 const root = createBrowserRouter([
   {
     path: "/",
+    element: <Suspense fallback={Loading}><Main /></Suspense>,
+  },
+  {
+    path: "/main",
     element: <Suspense fallback={Loading}><Main /></Suspense>,
   },
   {
@@ -38,7 +42,15 @@ const root = createBrowserRouter([
     path: "/approvals/:id",
     element: <Suspense fallback={Loading}><ApprovalDetail /></Suspense>,
   },
-
+  {
+    // ✅ 반려 문서 재상신 페이지
+    path: "/approvals/:docId/resubmit",
+    element: (
+      <Suspense fallback={Loading}>
+        <Resubmit />
+      </Suspense>
+    ),
+  },
 
   {
     path: "/hr",

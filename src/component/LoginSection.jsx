@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode"; // ✅ 수정: 구조 분해 말고 직접 import
 
 const LoginSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,78 +28,68 @@ const LoginSection = () => {
 
   const { user, token, isAuthenticated } = useSelector((state) => state.auth);
 
-  // ✅ 새로고침 시 Redux 상태 복원
+  /* ✅ 새로고침 시 Redux 상태 복원 */
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
     if (savedToken && savedUser) {
-      dispatch(
-        loginSuccess({
-          token: savedToken,
-          user: JSON.parse(savedUser),
-        })
-      );
+      dispatch(loginSuccess({ token: savedToken, user: JSON.parse(savedUser) }));
     }
   }, [dispatch]);
 
-  // ✅ 로그인 요청
+  /* ✅ 로그인 요청 */
   const handleLogin = async (values) => {
     try {
       setLoading(true);
       const res = await axios.post("http://localhost:8080/api/auth/login", values);
-      console.log("login response:", res.data);
-      
-      const token = res.data.accessToken;
+      console.log("🔐 login response:", res.data);
+
+      const accessToken = res.data.accessToken;
       const refreshToken = res.data.refreshToken;
+
+      if (!accessToken) throw new Error("AccessToken이 없습니다.");
+
+      // ✅ 토큰 디코딩
+      const decoded = jwtDecode(accessToken);
+      console.log("🧩 decoded token:", decoded);
+
+      // ✅ 역할 분류
       const authorities = res.data.roles?.map((r) => r.authority) || [];
-
-      console.log("🔑 accessToken:", token);
-      console.log("🧾 전체 authorities:", authorities);
-
-      if (!token || typeof token != "string") {
-        throw new Error("유효하지 않은 토큰입니다.");
-      }
-
       const userRoles = authorities.filter((auth) => auth.startsWith("ROLE_"));
       const userPermissions = authorities.filter((auth) => !auth.startsWith("ROLE_"));
 
-      console.log("🏷️ 역할 목록 (Roles):", userRoles);
-      console.log("🔐 권한 목록 (Permissions):", userPermissions);
+      // ✅ 사용자 정보 정리 (명시적)
+      const userData = {
+        userId: decoded.uid,        // 서버 DB PK
+        username: decoded.username, // 사번
+        empName: decoded.empName,   // 이름
+        email: decoded.email,       // 이메일
+        roles: userRoles,
+        permissions: userPermissions,
+      };
 
-      const decoded = jwtDecode(token);
-      console.log("🧩 decoded token:", decoded);
-
-      localStorage.setItem("token", token);
+      // ✅ 저장
+      localStorage.setItem("token", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("roles", JSON.stringify(userRoles));
-      localStorage.setItem("permissions", JSON.stringify(userPermissions));
-      localStorage.setItem("user", JSON.stringify(res.data));
+      localStorage.setItem("user", JSON.stringify(userData));
 
-      console.log("💾 저장된 roles:", JSON.parse(localStorage.getItem("roles")));
-      console.log("💾 저장된 permissions:", JSON.parse(localStorage.getItem("permissions")));
-      console.log("💾 저장된 user:", JSON.parse(localStorage.getItem("user")));
-      
-      
-      dispatch(
-        loginSuccess({
-          token: res.data.accessToken,
-          user: res.data,
-        })
-      );
+      dispatch(loginSuccess({ token: accessToken, user: userData }));
 
-      message.success(`${res.data.empName}님 환영합니다 👋`);
+      message.success(`${userData.empName || userData.username}님 환영합니다 👋`);
       setIsModalOpen(false);
+      navigate("/main");
     } catch (err) {
-      console.error(err);
+      console.error("❌ 로그인 실패:", err);
       message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ 로그아웃 처리
+  /* ✅ 로그아웃 */
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     dispatch(logout());
     message.success("로그아웃 되었습니다 👋");
@@ -113,7 +103,7 @@ const LoginSection = () => {
           <>
             <span style={{ color: "#fff", marginRight: 8 }}>
               <UserOutlined style={{ marginRight: 4 }} />
-              {user?.empName || user?.username}님 환영합니다 😊
+              {user?.username} {user?.empName} 님 환영합니다 😊
             </span>
 
             <Popconfirm
@@ -183,9 +173,7 @@ const LoginSection = () => {
             htmlType="submit"
             loading={loading}
             block
-            style={{
-              marginTop: "8px",
-            }}
+            style={{ marginTop: "8px" }}
           >
             로그인
           </Button>
