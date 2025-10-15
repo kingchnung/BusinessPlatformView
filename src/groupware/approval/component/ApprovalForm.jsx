@@ -23,7 +23,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
   const token = localStorage.getItem("token");
   const { docId } = useParams(); // ✅ /approvals/:docId/resubmit 에서 문서 ID 받음
   const location = useLocation();
-  const { user : currentUser } = useSelector((state) => state.auth);
+  const { user: currentUser } = useSelector((state) => state.auth);
 
 
   /* ===========================================================
@@ -143,16 +143,33 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
           reason: values.reason,
           lastWorkDate: values.lastWorkDate?.format("YYYY-MM-DD") || null,
         },
-        approvalLine: (values.approvalLine || []).map((a, idx) => ({
-          order: idx + 1,
-          approverId: a.approverId,
-          decision: "PENDING",
-          comment: "",
-        })),
+
+        approvalLine: (values.approvalLine || [])
+          .filter((a) => a.approverId) // ✅ 빈 값 방지
+          .map((a, idx) => {
+            // ✅ employeeOptions에서 approverId(=사번)로 해당 직원 찾기
+            const selectedEmp = employeeOptions.find(
+              (emp) => emp.value === a.approverId
+            );
+
+            // ✅ "이회계 (회계부)" → "이회계"만 추출
+            const approverName = selectedEmp
+              ? selectedEmp.label.split("(")[0].trim()
+              : "미등록 사용자";
+
+            return {
+              order: idx + 1,
+              approverId: a.approverId,
+              approverName, // ✅ 결재자 이름을 직접 세팅
+              decision: "PENDING",
+              comment: "",
+            };
+          }),
+
         attachments: pureAttachments,
 
         empId: currentUser.empId,
-        username : currentUser.username,
+        username: currentUser.username,
         userId: currentUser.userId,
         roleId: currentUser.roleId || null,
         departmentId: currentUser.departmentId || null,
@@ -167,8 +184,8 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         type === "draft"
           ? await draftApproval(data)
           : type === "resubmit"
-          ? await resubmitDocument(docId, data)
-          : await submitDocument(data);
+            ? await resubmitDocument(docId, data)
+            : await submitDocument(data);
 
       // ✅ 5️⃣ 결과 처리
       if (res?.id) {
@@ -263,7 +280,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         {/* 결재자 라인 */}
         <Form.List
           name="approvalLine"
-          initialValue={[{ approverId: "" }]}
+          initialValue={[]}
           rules={[
             {
               validator: async (_, line) => {
@@ -293,7 +310,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
                     {...restField}
                     name={[name, "approverId"]}
                     rules={[{ required: true, message: "결재자를 선택하세요." }]}
-                    style={{flex: 1, minWidth: '200px'}}
+                    style={{ flex: 1, minWidth: '200px' }}
                   >
                     <Select
                       placeholder="결재자 선택"

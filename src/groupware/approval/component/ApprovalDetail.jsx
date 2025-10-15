@@ -1,32 +1,10 @@
 import React, { useEffect, useState } from "react";
-import {
-    Descriptions,
-    Tag,
-    List,
-    Card,
-    message,
-    Button,
-    Divider,
-    Space,
-    Typography,
-    Empty,
-    Modal,
-    Input,
-} from "antd";
-import {
-    ArrowLeftOutlined,
-    FileOutlined,
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    LoadingOutlined,
-    RedoOutlined,
-} from "@ant-design/icons";
+import { Descriptions, Tag, List, Card, message, Button, Divider, Space, Typography, Empty, Modal, Input, } from "antd";
+import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import {
-    approveDocument,
-    getApprovalDetail,
-    rejectDocument,
-} from "../../../api/groupware/approvalApi";
+import { approveDocument, getApprovalDetail, rejectDocument, } from "../../../api/groupware/approvalApi";
+import { useSelector } from "react-redux";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -50,24 +28,43 @@ const ApprovalDetail = ({ docId }) => {
     const [detail, setDetail] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState("");
-    const currentUser = JSON.parse(localStorage.getItem("user"));
+    const { user: currentUser } = useSelector((state) => state.auth);
+    const [isCurrentUserTheApprover, setIsCurrentUserTheApprover] = useState(false);
 
     /* ===========================================================
-       ✅ 문서 상세조회
+        ✅ 문서 상세조회 및 현재 결재자 확인
     =========================================================== */
     useEffect(() => {
+        if (!docId || !currentUser) return; // docId나 currentUser가 없으면 실행하지 않음
+
         const fetchDetail = async () => {
             try {
                 const res = await getApprovalDetail(docId);
                 setDetail(res);
                 console.log("📄 [상세조회 성공]", res);
+
+                // ✅ [로직 추가] 문서 상태가 '진행중'일 때, 현재 사용자가 결재자인지 확인
+                if (res.status === 'IN_PROGRESS') {
+                    // 결재 라인에서 현재 'PENDING' 상태인 단계를 찾습니다.
+                    const currentStep = res.approvalLine.find(step => step.decision === 'PENDING');
+
+                    // 현재 단계의 결재자 ID와 로그인한 사용자의 username(사번)이 일치하는지 확인
+                    if (currentStep && currentStep.approverId === currentUser.username) {
+                        setIsCurrentUserTheApprover(true);
+                        console.log("✅ 당신은 현재 결재자입니다.");
+                    } else {
+                        setIsCurrentUserTheApprover(false);
+                        console.log("🚫 당신은 현재 결재자가 아닙니다.");
+                    }
+                }
+
             } catch (err) {
                 console.error("❌ 문서 상세조회 실패:", err);
                 message.error("문서 정보를 불러올 수 없습니다.");
             }
         };
         fetchDetail();
-    }, [docId]);
+    }, [docId, currentUser]); // currentUser가 로드된 후에도 이 로직이 실행되도록 의존성 배열에 추가
 
     // detail이 로드된 후 로그 출력
     useEffect(() => {
@@ -87,8 +84,12 @@ const ApprovalDetail = ({ docId }) => {
             message.success("문서가 승인되었습니다 ✅");
             navigate("/approvals");
         } catch (err) {
-            console.error(err);
-            message.error("승인 처리 중 오류가 발생했습니다.");
+            console.error("❌ 승인 처리 중 오류:", err);
+            if (err.response && err.response.status === 403) {
+                message.error(err.response.data.message || "승인할 권한이 없습니다.");
+            } else {
+                message.error("승인 처리 중 오류가 발생했습니다.");
+            }
         }
     };
 
@@ -106,29 +107,36 @@ const ApprovalDetail = ({ docId }) => {
             setIsRejectModalOpen(false);
             navigate("/approvals");
         } catch (err) {
-            console.error(err);
-            message.error("반려 처리 중 오류가 발생했습니다.");
+            console.error("❌ 반려 처리 중 오류:", err);
+            if (err.response && err.response.status === 403) {
+                message.error(err.response.data.message || "반려할 권한이 없습니다.");
+            } else {
+                message.error("반려 처리 중 오류가 발생했습니다.");
+            }
         }
     };
 
     /* ===========================================================
        ✅ 재상신 조건
     =========================================================== */
-    const canResubmit =
+    const canRewriteOrResubmit =
         ["REJECTED", "DRAFT"].includes(detail?.status) && // ✅ 반려 or 임시저장
         currentUser?.userId &&
         (currentUser?.username === detail?.username ||
             currentUser?.userId == detail?.userId);
 
     /* ===========================================================
-       ✅ 재상신 클릭 시 이동
+        ✅ 3. 재작성/재상신 버튼 클릭 핸들러 (로직 통합)
     =========================================================== */
-    const handleResubmit = () => {
-        if (!detail) {
-            message.warning("문서 정보를 불러올 수 없습니다.");
-            return;
+    const handleRewriteOrResubmit = () => {
+        if (!detail) return;
+
+        // DRAFT 상태일 때는 '수정(edit)' 페이지로, REJECTED 상태일 때는 '재상신(resubmit)' 페이지로 이동
+        if (detail.status === "DRAFT") {
+            navigate(`/approvals/${detail.id}/edit`, { state: detail });
+        } else if (detail.status === "REJECTED") {
+            navigate(`/approvals/${detail.id}/resubmit`, { state: detail });
         }
-        navigate(`/approvals/${detail.id}/resubmit`, { state: { ...detail } });
     };
 
     /* ===========================================================
@@ -234,21 +242,29 @@ const ApprovalDetail = ({ docId }) => {
                             <List.Item
                                 style={{
                                     borderBottom: "1px solid #f0f0f0",
-                                    padding: "10px 4px",
+                                    padding: "10px 8px",
                                 }}
                             >
                                 <Space direction="vertical" style={{ width: "100%" }}>
-                                    <Space>
+                                    <Space align="center">
                                         <Tag color={decisionColors[step.decision]}>
                                             {step.decision || "PENDING"}
                                         </Tag>
                                         <Text strong>
                                             {step.order}. {step.approverName}
                                         </Text>
+                                        {step.decision === "APPROVED" && <CheckCircleOutlined style={{ color: "green" }} />}
+                                        {step.decision === "REJECTED" && <CloseCircleOutlined style={{ color: "red" }} />}
                                     </Space>
                                     {step.comment && (
                                         <Text type="secondary" style={{ marginLeft: 32 }}>
                                             💬 {step.comment}
+                                        </Text>
+                                    )}
+
+                                    {step.decidedAt && (
+                                        <Text type="secondary" style={{ fontSize: "12px", marginLeft: 28 }}>
+                                            ⏰ {dayjs(step.decidedAt).format("YYYY-MM-DD HH:mm")}
                                         </Text>
                                     )}
                                 </Space>
@@ -326,28 +342,15 @@ const ApprovalDetail = ({ docId }) => {
                     marginTop: 16,
                 }}
             >
-                {canResubmit && (
+                {/* --- 재작성/재상신 버튼 (하나의 블록으로 통합) --- */}
+                {canRewriteOrResubmit && (
                     <Button
                         type="primary"
                         icon={<RedoOutlined />}
-                        onClick={handleResubmit}
+                        onClick={handleRewriteOrResubmit}
                         style={{ borderRadius: 8 }}
                     >
                         {detail.status === "DRAFT" ? "📝 재작성" : "🔁 재상신"}
-                    </Button>
-                )}
-
-                {/* ✏️ 재작성 버튼 (임시저장 상태) */}
-                {detail?.status === "DRAFT" && currentUser?.userId === detail?.userId && (
-                    <Button
-                        type="primary"
-                        icon={<RedoOutlined />}
-                        onClick={() =>
-                            navigate(`/approvals/${detail.id}/edit`, { state: detail })
-                        }
-                        style={{ borderRadius: 8 }}
-                    >
-                        ✏️ 재작성
                     </Button>
                 )}
 
@@ -357,6 +360,7 @@ const ApprovalDetail = ({ docId }) => {
                             icon={<CheckCircleOutlined />}
                             type="primary"
                             onClick={handleApprove}
+                            disabled={!isCurrentUserTheApprover} // ✅ 비활성화 로직 적용
                             style={{ borderRadius: 8 }}
                         >
                             승인
@@ -365,6 +369,7 @@ const ApprovalDetail = ({ docId }) => {
                             icon={<CloseCircleOutlined />}
                             danger
                             onClick={() => setIsRejectModalOpen(true)}
+                            disabled={!isCurrentUserTheApprover} // ✅ 비활성화 로직 적용
                             style={{ borderRadius: 8 }}
                         >
                             반려
