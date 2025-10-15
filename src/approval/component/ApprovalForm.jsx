@@ -6,8 +6,7 @@ import {
 import { UploadOutlined, PlusOutlined, MinusCircleOutlined, } from "@ant-design/icons";
 import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../api/approvalApi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { fetchUsers } from "../../api/userApi";
-import { current } from "@reduxjs/toolkit";
+import { fetchEmployees } from "../../api/hr/employeeApi";
 
 const { TextArea } = Input;
 
@@ -47,7 +46,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const data = await fetchUsers();
+        const data = await fetchEmployees();
         const options = data.map((emp) => ({
           label: `${emp.empName} (${emp.username})`,
           value: emp.username,

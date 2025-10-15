@@ -10,6 +10,7 @@ const ApprovalList = lazy(() => import("../approval/pages/ApprovalListPage"));
 const ApprovalDraft = lazy(() => import("../approval/pages/ApprovalDraftPage"));
 const ApprovalDetail = lazy(() => import("../approval/pages/ApprovalDetailPage"));
 const Resubmit = lazy(() => import("../approval/pages/ResubmitPage"));
+const EditDraft = lazy(() => import("../approval/pages/EditDraftPage"));
 
 const OrgChart = lazy(() => import("../hr/employee/pages/OrgChartPage"));
 const EmployeeCardList = lazy(() => import("../hr/employee/pages/EmployeeCardListPage"));
@@ -40,6 +41,10 @@ const root = createBrowserRouter([
   {
     path: "/approvals/draft",
     element: <Suspense fallback={Loading}><ApprovalDraft /></Suspense>,
+  },
+  {
+    path: "/approvals/:docId/draft",
+    element: <Suspense fallback={Loading}><EditDraft /></Suspense>,
   },
   {
     path: "/approvals/:id",

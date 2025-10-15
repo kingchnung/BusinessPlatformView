@@ -79,15 +79,19 @@ export const getApprovalDetail = async (docId) => {
 /**
  * 3️⃣ 문서 상신 (Submit)
  */
-export const submitDocument = async (data) => {
+export const submitDocument = async (dto) => {
   try {
-    const response = await axiosInstance.post("/approvals/submit", data);
-    message.success("상신 완료");
-    console.log("🚀 문서 상신 성공:", response.data);
+    // 상태 로깅
+    console.log("🚀 문서 상신 요청:", dto.status, dto);
+
+    const response = await axiosInstance.post("/approvals/submit", dto);
+    message.success("문서가 상신되었습니다 ✅");
     return response.data;
   } catch (error) {
-    message.error("문서 상신 실패");
+    console.error("❌ 문서 상신 실패:", error);
+    message.error("상신 처리 중 오류가 발생했습니다.");
     handleApiError(error);
+    throw error;
   }
 };
 
@@ -98,6 +102,8 @@ export const resubmitDocument = async (docId, dto) => {
 
   return res.data;
 };
+
+
 
 /**
  * 4️⃣ 문서 임시저장 (Draft)
