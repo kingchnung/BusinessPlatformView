@@ -1,4 +1,4 @@
-import axiosInstance from "../common/axiosInstance";
+import axiosInstance from "../../common/axiosInstance";
 import { message } from "antd";
 
 /**
@@ -181,7 +181,7 @@ export const uploadFile = async (file, docId) => {
  * 8️⃣ 파일 미리보기 (새 창)
  */
 export const previewFile = (id) => {
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
   const url = `http://localhost:8080/api/upload/download/${id}?inline=true`;
   window.open(url, "_blank");
 };

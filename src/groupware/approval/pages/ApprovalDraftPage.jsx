@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import MainPage from "../../pages/MainPage";
 import ApprovalForm from "../component/ApprovalForm";
 import ApprovalList from "../component/ApprovalList";
 import { Row, Col } from "antd";
-import MainLayout from "../../layouts/MainLayout";
+import MainLayout from "../../../layouts/MainLayout";
 
 const ApprovalDraftPage = () => {
   const [refreshKey, setRefreshKey] = useState(0);

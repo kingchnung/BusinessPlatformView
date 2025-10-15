@@ -4,9 +4,9 @@ import {
   Form, Input, Button, Card, Space, message, DatePicker, Select, Upload,
 } from "antd";
 import { UploadOutlined, PlusOutlined, MinusCircleOutlined, } from "@ant-design/icons";
-import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../api/approvalApi";
+import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../../api/groupware/approvalApi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { fetchEmployees } from "../../api/hr/employeeApi";
+import { fetchEmployees } from "../../../api/hr/employeeApi";
 
 const { TextArea } = Input;
 
@@ -48,7 +48,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
       try {
         const data = await fetchEmployees();
         const options = data.map((emp) => ({
-          label: `${emp.empName} (${emp.username})`,
+          label: `${emp.empName} (${emp.deptName})`,
           value: emp.username,
         }));
         setEmployeeOptions(options);
@@ -307,6 +307,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
                     {...restField}
                     name={[name, "approverId"]}
                     rules={[{ required: true, message: "결재자를 선택하세요." }]}
+                    style={{flex: 1, minWidth: '200px'}}
                   >
                     <Select
                       placeholder="결재자 선택"

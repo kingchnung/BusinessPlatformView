@@ -1,5 +1,5 @@
 import React from "react";
-import EditDraft from "../component/EditDraft";
+import EditDraft from "../approval/component/EditDraft";
 import MainLayout from "../../layouts/MainLayout";
 
 const EditDraftPage = () => {

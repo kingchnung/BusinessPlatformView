@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, message, Card, Spin } from "antd";
-import { getApprovalList } from "../../api/approvalApi";
+import { getApprovalList } from "../../../api/groupware/approvalApi";
 import { useNavigate } from "react-router-dom";
 
 const ApprovalList = ({ refreshKey = 0 }) => {

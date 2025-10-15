@@ -1,6 +1,6 @@
 import React from "react";
 import MainLayout from "../../layouts/MainLayout";
-import Resubmit from "../component/Resubmit";
+import Resubmit from "../approval/component/Resubmit";
 
 const ResubmitPage = () => {
   return (

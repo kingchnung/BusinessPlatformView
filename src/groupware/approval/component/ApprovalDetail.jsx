@@ -26,7 +26,7 @@ import {
     approveDocument,
     getApprovalDetail,
     rejectDocument,
-} from "../../api/approvalApi";
+} from "../../../api/groupware/approvalApi";
 
 const { Title, Text } = Typography;
 

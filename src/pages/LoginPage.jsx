@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Card, Input, Button, Typography, Form, message } from "antd";
-import axios from "axios";
 import { loginSuccess } from "../slice/authSlice";
-import { jwtDecode } from "jwt-decode";
+import { loginUser } from "../api/login/authApi";
 
 const { Title, Text } = Typography;
 
@@ -14,38 +13,22 @@ export default function Login() {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
-    const { username, password } = values;
     setLoading(true);
-
     try {
-      const res = await axios.post("http://localhost:8080/api/auth/login", {
-        username,
-        password,
-      });
+      // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
+      const { user, token, refreshToken } = await loginUser(values);
 
-      const { accessToken } = res.data;
+      // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
+      localStorage.setItem("token", token);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
+      dispatch(loginSuccess({ user, token }));
 
-      localStorage.setItem("token", accessToken);
+      message.success(`${user.empName || user.username}님 환영합니다!`);
+      navigate("/"); // 메인 페이지로 이동
 
-      const decoded = jwtDecode(accessToken);
-
-      const userData = {
-        userId : decoded.uid,
-        username : decoded.username,
-        empName : decoded.empName,
-        email : decoded.email || null,
-        roles : decoded.roles || [],
-      }
-
-      // ✅ localStorage + Redux 저장
-      localStorage.setItem("user", JSON.stringify(userData));
-      dispatch(loginSuccess({ user: userData, token: accessToken }));
-
-      message.success(`${userData.empName || userData.username}님 환영합니다!`);
-      navigate("/");
     } catch (err) {
-      console.error("로그인 실패:", err);
-      message.error("아이디 또는 비밀번호가 올바르지 않습니다.");
+      message.error("아이디 또는 비밀번호가 올바르지 않습니다.", {err});
     } finally {
       setLoading(false);
     }

@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { UploadOutlined, ArrowLeftOutlined, EditOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getApprovalDetail, submitDocument } from "../../api/approvalApi";
+import { getApprovalDetail, submitDocument } from "../../../api/groupware/approvalApi";
 
 const { Title } = Typography;
 

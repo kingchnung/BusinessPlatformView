@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import MainPage from "../../pages/MainPage";
+import MainPage from "../../../pages/MainPage";
 import ApprovalList from "../component/ApprovalList";
-import MainLayout from "../../layouts/MainLayout";
+import MainLayout from "../../../layouts/MainLayout";
 
 const ApprovalListPage = () => {
   const navigate = useNavigate();
