@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Avatar, Button, message, Spin, Modal } from "antd";
-import { UserOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { Card, Descriptions, Avatar, Button, message, Spin } from "antd";
+import {
+  UserOutlined,
+  EditOutlined,
+  ArrowLeftOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 import axiosInstance from "../../../common/axiosInstance";
 
 const EmployeeDetailPage = () => {
@@ -27,26 +32,6 @@ const EmployeeDetailPage = () => {
     fetchEmployee();
   }, [empId]);
 
-  // 🔹 삭제
-  const handleDelete = async () => {
-    Modal.confirm({
-      title: "삭제 확인",
-      content: "정말로 이 직원을 삭제하시겠습니까?",
-      okText: "삭제",
-      okType: "danger",
-      cancelText: "취소",
-      async onOk() {
-        try {
-          await axiosInstance.delete(`/employees/${empId}`);
-          message.success("직원이 삭제되었습니다.");
-          navigate("/hr/employee/cards");
-        } catch (error) {
-          message.error("삭제 중 오류가 발생했습니다.");
-        }
-      },
-    });
-  };
-
   if (loading || !employee) {
     return (
       <div style={{ textAlign: "center", marginTop: 80 }}>
@@ -54,6 +39,20 @@ const EmployeeDetailPage = () => {
       </div>
     );
   }
+
+  // // 🔹 상태 변환
+  // const getStatusLabel = (status) => {
+  //   switch (status) {
+  //     case "ACTIVE":
+  //       return "재직";
+  //     case "ON_LEAVE":
+  //       return "휴직";
+  //     case "INACTIVE":
+  //       return "퇴직";
+  //     default:
+  //       return "-";
+  //   }
+  // };
 
   return (
     <Card
@@ -80,16 +79,13 @@ const EmployeeDetailPage = () => {
             목록으로
           </Button>
           <div>
+            {/* ✅ 관리자 이상만 노출되는 수정 버튼 (삭제 제거됨) */}
             <Button
               type="primary"
               icon={<EditOutlined />}
-              style={{ marginRight: 8 }}
-              onClick={() => message.info("수정 페이지 준비 중입니다.")}
+              onClick={() => navigate(`/hr/employee/edit/${empId}`)}
             >
               수정
-            </Button>
-            <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-              삭제
             </Button>
           </div>
         </div>
@@ -127,6 +123,20 @@ const EmployeeDetailPage = () => {
         column={2}
         labelStyle={{ fontWeight: "bold", width: 180 }}
       >
+        {/* ✅ 성별 / 나이 추가 */}
+        <Descriptions.Item label="성별">
+          {employee.gender === "F"
+            ? "여성"
+            : employee.gender === "M"
+            ? "남성"
+            : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="나이">
+          {employee.birthDate
+            ? dayjs().diff(dayjs(employee.birthDate), "year") + "세"
+            : "-"}
+        </Descriptions.Item>
+
         <Descriptions.Item label="이메일">
           {employee.email || "-"}
         </Descriptions.Item>
@@ -134,10 +144,12 @@ const EmployeeDetailPage = () => {
           {employee.phone || "-"}
         </Descriptions.Item>
         <Descriptions.Item label="입사일">
-          {employee.hireDate || "-"}
+          {employee.startDate
+            ? dayjs(employee.startDate).format("YYYY-MM-DD")
+            : "-"}
         </Descriptions.Item>
         <Descriptions.Item label="상태">
-          {employee.status === "active" ? "재직" : "퇴직"}
+           {employee.status || "-"}
         </Descriptions.Item>
         <Descriptions.Item label="주소" span={2}>
           {employee.address || "-"}
