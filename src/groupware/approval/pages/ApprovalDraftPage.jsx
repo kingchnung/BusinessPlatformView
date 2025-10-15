@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import MainPage from "../../pages/MainPage";
 import ApprovalForm from "../component/ApprovalForm";
 import ApprovalList from "../component/ApprovalList";
 import { Row, Col } from "antd";
+import MainLayout from "../../../layouts/MainLayout";
 
 const ApprovalDraftPage = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -12,7 +12,7 @@ const ApprovalDraftPage = () => {
   };
 
   return (
-    <MainPage>
+    <MainLayout>
       <Row gutter={[24, 24]}>
         <Col span={24}>
           <ApprovalForm onUpdate={handleUpdate} />
@@ -21,7 +21,7 @@ const ApprovalDraftPage = () => {
           <ApprovalList refreshKey={refreshKey} />
         </Col>
       </Row>
-    </MainPage>
+    </MainLayout>
   );
 };
 

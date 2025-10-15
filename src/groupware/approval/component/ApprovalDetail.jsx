@@ -10,6 +10,8 @@ import {
     Space,
     Typography,
     Empty,
+    Modal,
+    Input,
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -17,10 +19,14 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     LoadingOutlined,
+    RedoOutlined,
 } from "@ant-design/icons";
-import { Modal, Input } from "antd";
-import { approveDocument, getApprovalDetail, rejectDocument } from "../../api/approvalApi";
 import { useNavigate } from "react-router-dom";
+import {
+    approveDocument,
+    getApprovalDetail,
+    rejectDocument,
+} from "../../../api/groupware/approvalApi";
 
 const { Title, Text } = Typography;
 
@@ -30,6 +36,7 @@ const statusColors = {
     APPROVED: "success",
     REJECTED: "error",
     DELETED: "warning",
+    RESUBMITTED: "purple",
 };
 
 const decisionColors = {
@@ -38,14 +45,42 @@ const decisionColors = {
     REJECTED: "red",
 };
 
-
-
 const ApprovalDetail = ({ docId }) => {
-    const [detail, setDetail] = useState(null);
     const navigate = useNavigate();
+    const [detail, setDetail] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState("");
+    const currentUser = JSON.parse(localStorage.getItem("user"));
 
+    /* ===========================================================
+       ✅ 문서 상세조회
+    =========================================================== */
+    useEffect(() => {
+        const fetchDetail = async () => {
+            try {
+                const res = await getApprovalDetail(docId);
+                setDetail(res);
+                console.log("📄 [상세조회 성공]", res);
+            } catch (err) {
+                console.error("❌ 문서 상세조회 실패:", err);
+                message.error("문서 정보를 불러올 수 없습니다.");
+            }
+        };
+        fetchDetail();
+    }, [docId]);
+
+    // detail이 로드된 후 로그 출력
+    useEffect(() => {
+        if (detail && currentUser) {
+            console.log("✅ currentUser:", currentUser);
+            console.log("✅ detail.userId:", detail.userId);
+            console.log("✅ detail.username:", detail.username);
+        }
+    }, [detail, currentUser]);
+
+    /* ===========================================================
+       ✅ 승인 처리
+    =========================================================== */
     const handleApprove = async () => {
         try {
             await approveDocument(detail.id);
@@ -57,6 +92,9 @@ const ApprovalDetail = ({ docId }) => {
         }
     };
 
+    /* ===========================================================
+       ✅ 반려 처리
+    =========================================================== */
     const handleReject = async () => {
         if (!rejectReason.trim()) {
             message.warning("반려 사유를 입력해주세요.");
@@ -73,28 +111,49 @@ const ApprovalDetail = ({ docId }) => {
         }
     };
 
-    useEffect(() => {
-        const fetchDetail = async () => {
-            try {
-                const res = await getApprovalDetail(docId);
-                setDetail(res);
-                console.log("📄 Approval Detail Response:", res);
-            } catch (err) {
-                console.error(err);
-                message.error("문서 정보를 불러올 수 없습니다.");
-            }
-        };
-        fetchDetail();
-    }, [docId]);
+    /* ===========================================================
+       ✅ 재상신 조건
+    =========================================================== */
+    const canResubmit =
+        ["REJECTED", "DRAFT"].includes(detail?.status) && // ✅ 반려 or 임시저장
+        currentUser?.userId &&
+        (currentUser?.username === detail?.username ||
+            currentUser?.userId == detail?.userId);
 
-    if (!detail)
+    /* ===========================================================
+       ✅ 재상신 클릭 시 이동
+    =========================================================== */
+    const handleResubmit = () => {
+        if (!detail) {
+            message.warning("문서 정보를 불러올 수 없습니다.");
+            return;
+        }
+        navigate(`/approvals/${detail.id}/resubmit`, { state: { ...detail } });
+    };
+
+    /* ===========================================================
+       ✅ null-safe 렌더링 가드
+    =========================================================== */
+    if (!currentUser) {
+        return (
+            <div style={{ textAlign: "center", padding: "60px" }}>
+                <p>로그인 정보가 없습니다. 다시 로그인해주세요.</p>
+            </div>
+        );
+    }
+
+    if (!detail) {
         return (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
                 <LoadingOutlined style={{ fontSize: 28, color: "#1677ff" }} />
                 <p style={{ color: "#888", marginTop: 8 }}>문서 정보를 불러오는 중...</p>
             </div>
         );
+    }
 
+    /* ===========================================================
+       ✅ 렌더링 시작
+    =========================================================== */
     return (
         <div style={{ padding: 24 }}>
             {/* ✅ 상단 헤더 */}
@@ -148,13 +207,11 @@ const ApprovalDetail = ({ docId }) => {
                 >
                     <Descriptions.Item label="문서 ID">{detail.id || "-"}</Descriptions.Item>
                     <Descriptions.Item label="제목">{detail.title || "-"}</Descriptions.Item>
-                    <Descriptions.Item label="부서명">{detail.departmentName || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="부서명">
+                        {detail.departmentName || "-"}
+                    </Descriptions.Item>
                     <Descriptions.Item label="작성자">
-                        {detail.authorName ||
-                            detail.userName ||
-                            detail.userId
-                            ? `${detail.userId}`
-                            : "-"}
+                        {detail.authorName || detail.username || "-"}
                     </Descriptions.Item>
                     <Descriptions.Item label="작성일">
                         {detail.createdAt ? detail.createdAt.substring(0, 10) : "-"}
@@ -260,7 +317,7 @@ const ApprovalDetail = ({ docId }) => {
 
             <Divider />
 
-            {/* ✅ 하단 요약 / 액션 영역 */}
+            {/* ✅ 하단 액션 영역 */}
             <div
                 style={{
                     display: "flex",
@@ -269,6 +326,31 @@ const ApprovalDetail = ({ docId }) => {
                     marginTop: 16,
                 }}
             >
+                {canResubmit && (
+                    <Button
+                        type="primary"
+                        icon={<RedoOutlined />}
+                        onClick={handleResubmit}
+                        style={{ borderRadius: 8 }}
+                    >
+                        {detail.status === "DRAFT" ? "📝 재작성" : "🔁 재상신"}
+                    </Button>
+                )}
+
+                {/* ✏️ 재작성 버튼 (임시저장 상태) */}
+                {detail?.status === "DRAFT" && currentUser?.userId === detail?.userId && (
+                    <Button
+                        type="primary"
+                        icon={<RedoOutlined />}
+                        onClick={() =>
+                            navigate(`/approvals/${detail.id}/edit`, { state: detail })
+                        }
+                        style={{ borderRadius: 8 }}
+                    >
+                        ✏️ 재작성
+                    </Button>
+                )}
+
                 {detail.status === "IN_PROGRESS" && (
                     <>
                         <Button
@@ -289,6 +371,7 @@ const ApprovalDetail = ({ docId }) => {
                         </Button>
                     </>
                 )}
+
                 <Button
                     onClick={() => navigate("/approvals")}
                     icon={<ArrowLeftOutlined />}
@@ -296,6 +379,8 @@ const ApprovalDetail = ({ docId }) => {
                 >
                     목록으로 돌아가기
                 </Button>
+
+                {/* ✅ 반려 모달 */}
                 <Modal
                     title="반려 사유 입력"
                     open={isRejectModalOpen}

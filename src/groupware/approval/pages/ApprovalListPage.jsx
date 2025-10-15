@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import MainPage from "../../pages/MainPage";
+import MainPage from "../../../pages/MainPage";
 import ApprovalList from "../component/ApprovalList";
+import MainLayout from "../../../layouts/MainLayout";
 
 const ApprovalListPage = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const ApprovalListPage = () => {
   };
 
   return (
-    <MainPage>
+    <MainLayout>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>전자결재 문서함</h2>
         <button
@@ -33,7 +34,7 @@ const ApprovalListPage = () => {
 
       {/* 결재문서 목록 컴포넌트 */}
       <ApprovalList />
-    </MainPage>
+    </MainLayout>
   );
 };
 

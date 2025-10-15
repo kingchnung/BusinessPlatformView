@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, message, Card, Spin } from "antd";
-import { getApprovalList } from "../../api/approvalApi";
+import { getApprovalList } from "../../../api/groupware/approvalApi";
 import { useNavigate } from "react-router-dom";
 
 const ApprovalList = ({ refreshKey = 0 }) => {
@@ -91,10 +91,10 @@ const ApprovalList = ({ refreshKey = 0 }) => {
           status === "IN_PROGRESS"
             ? "orange"
             : status === "APPROVED"
-            ? "green"
-            : status === "REJECTED"
-            ? "red"
-            : "gray";
+              ? "green"
+              : status === "REJECTED"
+                ? "red"
+                : "gray";
         return <span style={{ color, fontWeight: 600 }}>{status}</span>;
       },
     },

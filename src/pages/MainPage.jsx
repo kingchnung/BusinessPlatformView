@@ -1,12 +1,13 @@
 
+import MainDashboard from "../component/dashboard/MainDashboard";
 import MainLayout from "../layouts/MainLayout";
 
 
-const MainPage = ({children}) => {
+const MainPage = () => {
     return (
         <>
             <MainLayout>
-                {children}
+                <MainDashboard />
             </MainLayout>
         </>
     )
