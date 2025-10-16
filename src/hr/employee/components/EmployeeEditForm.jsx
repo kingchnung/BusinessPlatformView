@@ -12,21 +12,6 @@ const EmployeeEditForm = ({ empId, userRoles }) => {
   const [isLoading, setIsLoading] = useState(true);
   const isAdmin = userRoles.includes("ROLE_MANAGER") || userRoles.includes("ROLE_CEO");
 
-  const [isModalVisible, setIsModalVisible] = useState(false); // ✅ 모달 상태
-
-  const handleDelete = async () => {
-    try {
-      await deleteEmployee(empId);
-      message.success("인사카드가 삭제되었습니다.");
-      setIsModalVisible(false);
-      navigate("/hr/employee/cards"); // ✅ 목록으로 이동
-    } catch (err) {
-      console.error(err);
-      message.error("삭제 중 오류가 발생했습니다.");
-    }
-  };
-
-
   // ✅ 초기 데이터 불러오기
   useEffect(() => {
     const fetchEmployee = async () => {

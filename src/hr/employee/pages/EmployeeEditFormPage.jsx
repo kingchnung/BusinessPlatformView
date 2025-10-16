@@ -15,22 +15,45 @@ const EmployeeEditFormPage = () => {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // ✅ 삭제 기능 (현재는 주석 처리 예정)
+  // ✅ 퇴직 처리 함수
+  const handleRetire = async () => {
+    try {
+      const today = dayjs().format("YYYY-MM-DD");
+      const payload = {
+        status: "INACTIVE",
+        leaveDate: today,
+      };
+
+      await updateEmployee(empId, payload);
+
+      form.setFieldsValue({
+        status: "INACTIVE",
+        leaveDate: dayjs(today), // 오늘 날짜로 표시
+      });
+      
+      message.success("퇴직 처리되었습니다.");
+      setIsModalVisible(false);
+      navigate("/hr/employee/cards");
+    } catch (err) {
+      console.error(err);
+      message.error("퇴직 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  // ✅ 기존 삭제 기능 (보존용 주석)
+  /*
   const handleDelete = async () => {
     try {
-      /* 
       await deleteEmployee(empId);
       message.success("인사카드가 삭제되었습니다.");
       setIsModalVisible(false);
       navigate("/hr/employee/cards");
-      */
-      message.info("현재는 삭제 기능이 비활성화되어 있습니다. (퇴직처리로 대체 예정)");
-      setIsModalVisible(false);
     } catch (err) {
       console.error(err);
       message.error("삭제 중 오류가 발생했습니다.");
     }
   };
+  */
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -42,20 +65,18 @@ const EmployeeEditFormPage = () => {
         const genderLabel =
           data.gender === "F" ? "여성" : data.gender === "M" ? "남성" : "";
 
-        // ✅ 나이 계산 (birthDate 기준)
+        // ✅ 나이 계산
         let age = null;
         if (data.birthDate) {
           const birth = dayjs(data.birthDate);
-          const today = dayjs();
-          age = today.diff(birth, "year");
+          age = dayjs().diff(birth, "year");
         }
 
-        // ✅ 근속연수 계산 (startDate 기준)
+        // ✅ 근속연수 계산
         let yearsOfService = null;
         if (data.startDate) {
           const start = dayjs(data.startDate);
-          const today = dayjs();
-          yearsOfService = today.diff(start, "year");
+          yearsOfService = dayjs().diff(start, "year");
         }
 
         form.setFieldsValue({
@@ -153,7 +174,7 @@ const EmployeeEditFormPage = () => {
             <DatePicker style={{ width: "100%" }} disabled />
           </Form.Item>
           <Form.Item label="퇴사일" name="leaveDate" style={{ flex: 1 }}>
-            <DatePicker style={{ width: "100%" }} />
+            <DatePicker style={{ width: "100%" }} disabled />
           </Form.Item>
         </div>
 
@@ -162,7 +183,7 @@ const EmployeeEditFormPage = () => {
           <Form.Item label="상태" name="status" style={{ flex: 1 }}>
             <Select>
               <Option value="ACTIVE">재직</Option>
-              <Option value="ON_LEAVE">휴직</Option>
+              <Option value="BREAK">휴직</Option>
             </Select>
           </Form.Item>
           <Form.Item label="근속연수" name="careerYears" style={{ flex: 1 }}>
@@ -182,23 +203,23 @@ const EmployeeEditFormPage = () => {
             수정하기
           </Button>
           <Button danger onClick={() => setIsModalVisible(true)}>
-            삭제
+            퇴직처리
           </Button>
         </div>
       </Form>
 
-      {/* ✅ 삭제 확인 모달 */}
+      {/* ✅ 퇴직 확인 모달 */}
       <Modal
-        title="인사카드 삭제 확인"
+        title="퇴직 처리 확인"
         open={isModalVisible}
-        onOk={handleDelete}
+        onOk={handleRetire}
         onCancel={() => setIsModalVisible(false)}
-        okText="삭제"
+        okText="퇴직처리"
         cancelText="취소"
         okButtonProps={{ danger: true }}
       >
-        <p>현재는 삭제 기능이 비활성화되어 있습니다.</p>
-        <p style={{ color: "gray" }}>퇴직 상태로 변경하여 관리해주세요.</p>
+        <p>현시점으로 퇴직처리 하시겠습니까?</p>
+        <p style={{ color: "gray" }}>처리 후에는 퇴직 상태로 변경되며, 복귀 시 별도 수정이 필요합니다.</p>
       </Modal>
     </div>
   );
