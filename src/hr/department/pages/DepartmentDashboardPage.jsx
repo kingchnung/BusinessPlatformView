@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, Row, Col, Spin, message } from "antd";
 import axiosInstance from "../../../common/axiosInstance";
-import AvgAgeChart from "../../components/charts/AvgAgeChart";
-import AvgYearsChart from "../../components/charts/AvgYearsChart";
-import AgeDistributionChart from "../../components/charts/AgeDistributionChart";
-import GradeDistributionChart from "../../components/charts/GradeDistributionChart";
+import AvgAgeChart from "../components/AvgAgeChart";
+import AvgYearsChart from "../components/AvgYearsChart";
+import AgeDistributionChart from "../components/AgeDistributionChart";
+import GradeDistributionChart from "../components/GradeDistributionChart";
 import { divideDepartmentsByCode } from "../../util/departmentDivision";
 
 const DepartmentDashboardPage = () => {

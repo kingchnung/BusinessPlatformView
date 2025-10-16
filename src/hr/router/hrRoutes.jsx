@@ -12,12 +12,14 @@ const EmployeMyEdit = lazy(() => import("../employee/pages/EmployeeMyEditPage"))
 const EmployeMySelect = lazy(() => import("../employee/pages/EmployeeSelectPage"));
 const EmployeEditor = lazy(() => import("../employee/pages/EmployeeEditFormPage"));
 const DepartmentOverview = lazy(() => import("../department/pages/DepartmentOverviewPage"));
+const Dashboard = lazy(()=>import("../department/pages/DepartmentDashboardPage"));
+const DepartmentDetail = lazy(()=>import("../department/pages/DepartmentDetailPage"));
 
 // hr 기능과 관련된 라우트 배열 정의
+
 const hrRoutes = [
   {
-    // '/hr' 경로에 해당
-    path: "", 
+    index:true,  // '/hr' 경로에 해당
     element: <Suspense fallback={Loading}><OrgChart /></Suspense>,
   },
   {
@@ -48,6 +50,14 @@ const hrRoutes = [
   {
     path: "department/overview",
     element: <Suspense fallback={Loading}><DepartmentOverview /></Suspense>,
+  },
+  {
+    path : "department",
+    element:<Suspense fallback={Loading}><Dashboard /></Suspense>,
+  },
+  {
+    path : "department/:deptId",
+    element : <Suspense fallback={Loading}><DepartmentDetail /></Suspense>,
   },
 ];
 

@@ -181,10 +181,9 @@ const EmployeeEditFormPage = () => {
         {/* ✅ 6행 : 상태 / 근속연수 */}
         <div style={{ display: "flex", gap: "20px" }}>
           <Form.Item label="상태" name="status" style={{ flex: 1 }}>
-            <Select disabled>
+            <Select>
               <Option value="ACTIVE">재직</Option>
-              <Option value="ON_LEAVE">휴직</Option>
-              <Option value="INACTIVE">퇴직</Option>
+              <Option value="BREAK">휴직</Option>
             </Select>
           </Form.Item>
           <Form.Item label="근속연수" name="careerYears" style={{ flex: 1 }}>
