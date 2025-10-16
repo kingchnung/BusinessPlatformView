@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import dayjs from "dayjs";
 import {
   Form, Input, Button, Card, Space, message, DatePicker, Select, Upload,
 } from "antd";
@@ -8,23 +7,47 @@ import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchEmployees } from "../../../api/hr/employeeApi";
 import { useSelector } from "react-redux";
+// ✅ 문서유형별 하위 폼 import
+import RequestForm from "./forms/RequestForm";
+import ProjectPlanForm from "./forms/ProjectPlanForm";
+import EstimateProposalForm from "./forms/EstimateProposalForm";
+import ExpenseForm from "./forms/ExpenseForm";
+import PurchaseForm from "./forms/PurchaseForm";
+import LeaveForm from "./forms/LeaveForm";
+import ResignationForm from "./forms/ResignationForm";
+import HRMoveForm from "./forms/HRMoveForm";
+import { fetchDepartments } from "../../../api/hr/departmentsAPI";
 
 const { TextArea } = Input;
 
+const formTypes = {
+  REQUEST: RequestForm,
+  PROJECT_PLAN: ProjectPlanForm,
+  ESTIMATE_PROPOSAL: EstimateProposalForm,
+  EXPENSE: ExpenseForm,
+  PURCHASE: PurchaseForm,
+  LEAVE: LeaveForm,
+  RESIGN: ResignationForm,
+  HR_MOVE: HRMoveForm,
+};
+
 const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false); // ✅ 업로드 중 여부 추가
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [employeeOptions, setEmployeeOptions] = useState([]);
-  const [uploadedFiles, setUploadedFiles] = useState([]); // 서버 응답 DTO
-  const [fileList, setFileList] = useState([]); // UI 표시용
-  const [currentDocId, setCurrentDocId] = useState(null);
-  const token = localStorage.getItem("token");
-  const { docId } = useParams(); // ✅ /approvals/:docId/resubmit 에서 문서 ID 받음
+  const { docId } = useParams();
   const location = useLocation();
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [fileList, setFileList] = useState([]);
+  const [currentDocId, setCurrentDocId] = useState(null);
+  const [docData, setDocData] = useState({});
+  const [docType, setDocType] = useState(null);
+  const token = localStorage.getItem("token");
 
   /* ===========================================================
      ✅ 직원 목록 로드
@@ -46,27 +69,41 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
     loadEmployees();
   }, []);
 
+  // ✅ 부서 목록 로드
+  useEffect(() => {
+  const loadDepartments = async () => {
+    try {
+      const data = await fetchDepartments();
+      const options = data.map((dept) => ({
+        label: dept.deptName,
+        value: dept.deptName, // 또는 dept.deptId 사용 가능
+      }));
+      setDepartmentOptions(options);
+    } catch (err) {
+      console.error("부서 목록 조회 실패:", err);
+      message.error("부서 정보를 불러올 수 없습니다.");
+    }
+  };
+  loadDepartments();
+}, []);
+
+  /* ===========================================================
+     ✅ 재상신 데이터 로드
+  =========================================================== */
   useEffect(() => {
     if (isResubmit) {
-      const data = initialData || location.state; // ✅ props 또는 navigate state 사용
+      const data = initialData || location.state;
       if (data) {
-        console.log("📄 재상신 문서 로드:", data);
         form.setFieldsValue({
           title: data.title,
           docType: data.docType,
-          reason: data.docContent?.reason,
-          lastWorkDate: data.docContent?.lastWorkDate
-            ? dayjs(data.docContent.lastWorkDate)
-            : null,
-          approvalLine: data.approvalLine?.map((a) => ({
-            approverId: a.approverId, // ✅ 사번으로 변환
-          })),
         });
+        setDocData(data.docContent || {});
         setUploadedFiles(data.attachments || []);
+        setDocType(data.docType);
       }
     }
   }, [isResubmit, initialData, location.state]);
-
 
   /* ===========================================================
      ✅ 파일 업로드 (문서ID 없어도 임시 업로드 가능)
@@ -124,6 +161,8 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         return;
       }
 
+      const DynamicFormValues = docData; // ✅ 하위 폼의 입력데이터
+
       // ✅ 2️⃣ 업로드된 파일 DTO 변환
       const pureAttachments = uploadedFiles.map((file) => ({
         id: file.id,
@@ -139,10 +178,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         title: values.title,
         docType: values.docType,
         status: type === "draft" ? "DRAFT" : "SUBMITTED",
-        docContent: {
-          reason: values.reason,
-          lastWorkDate: values.lastWorkDate?.format("YYYY-MM-DD") || null,
-        },
+        docContent: DynamicFormValues, // ✅ 유형별 데이터,
 
         approvalLine: (values.approvalLine || [])
           .filter((a) => a.approverId) // ✅ 빈 값 방지
@@ -190,11 +226,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
       // ✅ 5️⃣ 결과 처리
       if (res?.id) {
         setCurrentDocId(res.id);
-        message.success(
-          type === "draft"
-            ? `임시저장 완료: ${res.id}`
-            : `상신 완료: ${res.id}`
-        );
+        message.success(`${type === "draft" ? "임시저장" : "상신"} 완료`);
       } else {
         message.warning("서버 응답에 문서 ID가 없습니다.");
       }
@@ -221,6 +253,9 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
   /* ===========================================================
      ✅ 렌더링
      =========================================================== */
+
+  const DynamicForm = formTypes[docType];
+
   return (
     <Card
       title={
@@ -245,10 +280,15 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         >
           <Select
             placeholder="문서 유형을 선택하세요"
+            onChange={(value) => setDocType(value)}
             options={[
-              { label: "품의서", value: "REQUEST" },
-              { label: "퇴직서", value: "RESIGN" },
-              { label: "보고서", value: "REPORT" },
+              { label: "기안서(품의서)", value: "REQUEST" },
+              { label: "프로젝트 기획안/품의서", value: "PROJECT_PLAN" },
+              { label: "견적서/제안서 발송 품의", value: "ESTIMATE_PROPOSAL" },
+              { label: "지출결의서", value: "EXPENSE" },
+              { label: "구매 품의서", value: "PURCHASE" },
+              { label: "휴가 신청서", value: "LEAVE" },
+              { label: "사직서", value: "RESIGN" },
               { label: "인사발령", value: "HR_MOVE" },
             ]}
           />
@@ -263,19 +303,20 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
           <Input placeholder="제목 입력" />
         </Form.Item>
 
-        {/* 사유 */}
-        <Form.Item
-          label="사유 / 내용"
-          name="reason"
-          rules={[{ required: true, message: "사유를 입력해주세요." }]}
-        >
-          <TextArea rows={4} placeholder="문서 내용을 입력하세요." />
-        </Form.Item>
-
-        {/* 예정일 */}
-        <Form.Item label="예정일 (선택)" name="lastWorkDate">
-          <DatePicker style={{ width: "100%" }} />
-        </Form.Item>
+        {/* ✅ 문서유형별 세부 입력폼 */}
+        {DynamicForm && (
+          <DynamicForm
+            value={docData}
+            onChange={(newValue) =>
+              setDocData((prev) => ({
+                ...prev,
+                ...newValue, // 🔥 기존 상태 유지 + 변경값 반영
+              }))
+            }
+            employeeOptions={employeeOptions}
+            departmentOptions={departmentOptions}
+          />
+        )}
 
         {/* 결재자 라인 */}
         <Form.List
