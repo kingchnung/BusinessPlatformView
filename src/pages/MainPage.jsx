@@ -1,12 +1,13 @@
-import { Children } from "react";
+
+import MainDashboard from "../component/dashboard/MainDashboard";
 import MainLayout from "../layouts/MainLayout";
 
 
-const MainPage = ({Children}) => {
+const MainPage = () => {
     return (
         <>
             <MainLayout>
-                {Children}
+                <MainDashboard />
             </MainLayout>
         </>
     )
