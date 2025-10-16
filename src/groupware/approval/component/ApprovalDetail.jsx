@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { approveDocument, getApprovalDetail, rejectDocument, } from "../../../api/groupware/approvalApi";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { getBoardList, getBoardDetail, addComment } from "../../../api/groupware/boardApi";
 
 const { Title, Text } = Typography;
 

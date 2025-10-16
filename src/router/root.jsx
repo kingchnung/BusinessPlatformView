@@ -5,6 +5,8 @@ import { createBrowserRouter } from "react-router-dom";
 import RootLayout from "./RootLayout"; // ✅ 1번에서 만든 최상위 레이아웃
 import ApprovalRoutes from "../groupware/approval/router/ApprovalRoutes";
 import ApprovalRouter from "../groupware/approval/router/ApprovalRouter";
+import BoardRouter from "../groupware/board/router/BoardRouter";
+import boardRoutes from "../groupware/board/router/BoardRoutes";
 // 참고: HR도 동일한 방식으로 분리할 수 있습니다. (HrLayout, hrRoutes)
 
 const Loading = <div>Loading...</div>;
@@ -31,6 +33,11 @@ const root = createBrowserRouter([
         path: "approvals",
         element: <ApprovalRouter />,
         children: ApprovalRoutes,
+      },
+      {
+        path: "/boards",
+        element: <BoardRouter />,
+        children: boardRoutes,
       },
     ],
   },
