@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, List, Input, Space, message, Divider } from "antd";
+import { Card, Button, List, Input, Space, message, Divider, Popconfirm } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
-import { getBoardDetail, getComments, addComment, deleteComment } from "../../../api/groupware/boardApi";
+import { getBoardDetail, getComments, addComment, deleteComment, deleteBoard } from "../../../api/groupware/boardApi";
 
 const { TextArea } = Input;
 
@@ -19,7 +19,7 @@ const BoardDetail = () => {
       const commentList = await getComments(id);
       setComments(commentList || []);
     } catch (e) {
-      message.error("게시글을 불러오지 못했습니다.");
+      message.error("게시글을 불러오지 못했습니다.", e);
     }
   };
 
@@ -36,16 +36,38 @@ const BoardDetail = () => {
   };
 
   const handleDelete = async () => {
-    await deleteComment(id);
-    message.success("게시글 삭제 완료");
-    navigate("/board");
+    try {
+      await deleteBoard(id);
+      message.success("게시글 삭제 완료");
+      navigate("/boards");
+    } catch (err) {
+      console.error("게시글 삭제 실패:", err);
+      message.error("게시글 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   if (!board) return <div style={{ padding: 24 }}>로딩 중...</div>;
 
   return (
     <div style={{ padding: 24 }}>
-      <Card title={board.title} bordered={false}>
+      <Card
+        title={board.title}
+        bordered={false}
+        extra={
+          <Space>
+            <Button onClick={() => navigate(`/boards/${id}/edit`)}>수정</Button>
+            <Popconfirm
+              title="이 게시글을 삭제하시겠습니까?"
+              okText="삭제"
+              cancelText="취소"
+              onConfirm={handleDelete}
+            >
+              <Button danger>삭제</Button>
+            </Popconfirm>
+            <Button onClick={() => navigate("/boards")}>목록</Button>
+          </Space>
+        }
+      >
         <p>
           <b>작성자:</b> {board.authorName}
         </p>
@@ -53,14 +75,6 @@ const BoardDetail = () => {
         <div style={{ whiteSpace: "pre-wrap", marginBottom: 24 }}>
           {board.content}
         </div>
-
-        <Space>
-          <Button onClick={() => navigate(`/board/${id}/edit`)}>수정</Button>
-          <Button danger onClick={handleDelete}>
-            삭제
-          </Button>
-          <Button onClick={() => navigate("/board")}>목록</Button>
-        </Space>
       </Card>
 
       <Card title="댓글" style={{ marginTop: 24 }}>
@@ -69,14 +83,17 @@ const BoardDetail = () => {
           renderItem={(item) => (
             <List.Item
               actions={[
-                <a
+                <Popconfirm
                   key="delete"
-                  onClick={() =>
+                  title="댓글을 삭제하시겠습니까?"
+                  okText="삭제"
+                  cancelText="취소"
+                  onConfirm={() =>
                     deleteComment(id, item.commentNo).then(() => loadData())
                   }
                 >
-                  삭제
-                </a>,
+                  <a>삭제</a>
+                </Popconfirm>,
               ]}
             >
               <List.Item.Meta

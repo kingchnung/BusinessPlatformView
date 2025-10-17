@@ -1,18 +1,19 @@
 import axiosInstance from "../../common/axiosInstance";
 import { message } from "antd";
+import { handleApiError } from "../../util/apiErrorUtil";
 
 /**
  * 2️⃣ 게시글 목록 조회
  */
-export const getBoardList = async (type = "NORMAL") => {
+export const getBoardList = async (type = "ALL") => {
   try {
-    const res = await axiosInstance.get("/boards", { params: { type } });
+    const params = type !== "ALL" ? { type } : {}; // ✅ ALL일 때는 파라미터 제거
+    const res = await axiosInstance.get("/boards", { params });
     console.log("📋 게시글 목록:", res.data);
     return res.data;
   } catch (error) {
     console.error("❌ 게시글 목록 조회 실패:", error);
     message.error("게시글 목록 조회 실패");
-    handleApiError(error);
   }
 };
 
