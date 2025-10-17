@@ -8,6 +8,16 @@ const { Header } = Layout;
 const HeaderLayout = () => {
   const navigate = useNavigate();
 
+  // ✅ 1. localStorage에서 사용자 정보를 가져옵니다.
+  let userRoles = [];
+  try {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) userRoles = JSON.parse(storedUser).roles || [];
+  } catch (e) { console.error("사용자 정보 파싱 실패", e); }
+
+  // ✅ 2. 사용자가 관리자 권한(ADMIN 또는 CEO)을 가지고 있는지 확인합니다.
+  const isAdmin = userRoles.includes("ROLE_ADMIN") || userRoles.includes("ROLE_CEO");
+
   const menuItems = [
     { key: "Main", label: "메인" },
     { key: "hr", label: "인사" },
@@ -16,6 +26,9 @@ const HeaderLayout = () => {
     { key: "approvals", label: "전자결재" },
     { key: "communications", label: "사내게시판" },
   ];
+  if (isAdmin){
+    menuItems.push({ key:"admin", label:"관리"});
+  }
 
   return (
     <Header

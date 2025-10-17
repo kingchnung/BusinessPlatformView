@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react"; // ✅ useMemo 추가
-import { Table, Card, Spin, message } from "antd";
+import { Table, Card, Spin, message, Progress } from "antd";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../../common/axiosInstance";
 import { divideDepartmentsByCode, getTeamsByDivisionCode } from "../../util/departmentDivision";
@@ -10,6 +10,9 @@ import EmployeeProvider from "../../employee/components/EmployeeProvider"; // �
  * 📄 DepartmentOverviewPage.jsx
  * EmployeeProvider를 통해 전체 직원 데이터를 받아 부서별 통계를 직접 계산하는 페이지
  */
+
+const TEAM_CAPACITY = 5;
+
 const DepartmentOverviewPage = () => {
   const [departments, setDepartments] = useState([]); // 부서 목록
   const [employees, setEmployees] = useState([]);     // ✅ 전체 직원 목록을 저장할 state
@@ -19,7 +22,6 @@ const DepartmentOverviewPage = () => {
 
   // ✅ EmployeeProvider가 데이터를 전달하면 employees state에 저장
   const handleEmployeesReady = useCallback((allEmployees) => {
-    console.log("✅ 1. handleEmployeesReady: EmployeeProvider로부터 받은 데이터", allEmployees);
     setEmployees(allEmployees);
   }, []);
 
@@ -51,23 +53,35 @@ const DepartmentOverviewPage = () => {
     fetchData();
   }, []);
 
-  // ✅ useMemo를 사용해 부서별 통계를 계산 (성능 최적화)
-  // employees나 departments 데이터가 변경될 때만 재계산됩니다.
+  // ✅ 1. 모든 통계 데이터를 여기서 한 번에 계산 (useMemo 활용)
   const departmentStats = useMemo(() => {
-    console.log("✅ 3. useMemo 실행: 계산 시작", { employees, departments });
-    const statsMap = {};
-    departments.forEach(dept => {
-      statsMap[dept.deptId] = { breakCount: 0 };
+    // 직원들을 부서 ID별로 그룹화하여 빠르게 찾을 수 있도록 Map 생성
+    const employeesByDept = new Map();
+    employees.forEach(emp => {
+      if (!employeesByDept.has(emp.deptId)) {
+        employeesByDept.set(emp.deptId, []);
+      }
+      employeesByDept.get(emp.deptId).push(emp);
     });
 
-    employees.forEach(emp => {
-      const deptId = emp.deptId;
-      if (deptId && statsMap[deptId]) {
-        const status = String(emp.status || "").toUpperCase();
-        if (status === 'BREAK') {
-          statsMap[deptId].breakCount += 1;
-        }
-      }
+    const statsMap = {};
+    departments.forEach(dept => {
+      const deptEmps = employeesByDept.get(dept.deptId) || [];
+      
+      const activeEmps = deptEmps.filter(e => String(e.status).toUpperCase() !== 'RETIRED');
+      const onBreak = activeEmps.filter(e => String(e.status).toUpperCase() === 'BREAK').length;
+      const retired = deptEmps.length - activeEmps.length;
+      
+      // 팀장 찾기 (positionCode가 14인 직원)
+      const teamLead = activeEmps.find(e => e.positionCode === 14);
+
+      statsMap[dept.deptId] = {
+        currentStaff: activeEmps.length - onBreak,
+        breakCount: onBreak,
+        retiredCount: retired,
+        teamLeadName: teamLead ? teamLead.empName : '-',
+      
+      };
     });
     return statsMap;
   }, [employees, departments]);
@@ -81,26 +95,50 @@ const DepartmentOverviewPage = () => {
 
   const columns = [
     // ... (이전과 동일한 컬럼 정의)
-    {
-      title: "부서명", dataIndex: "deptName", key: "deptName",
+    { title: "부서명", dataIndex: "deptName", key: "deptName",
       render: (text, record) => record.deptCode % 10 === 0 ? <strong>{text}</strong> : <span style={{ paddingLeft: 20 }}>{text}</span>,
     },
-    { title: "총 인원", dataIndex: "employeeCount", key: "employeeCount", align: "center", render: (count) => `${count || 0}명` },
-    {
-      title: "휴직/휴가", key: "breakCount", align: "center",
-      // ✅ 계산된 통계(departmentStats)를 사용해 휴직 인원 표시
+    { title: "현재 인원", key: "currentStaff", align: "center",
       render: (_, record) => {
-        const count = departmentStats[record.deptId]?.breakCount || 0;
-        return <span>{count}명</span>;
-      },
+        if (record.deptCode % 10 === 0) return '-';
+        const stats = departmentStats[record.deptId];
+        return stats ? `${stats.currentStaff}명` : '0명';
+      }
     },
-    {
-      title: "평균 나이", dataIndex: "avgAge", key: "avgAge", align: "center",
-      render: (value, record) => record.deptCode % 10 === 0 ? "-" : (value ? `${value.toFixed(1)} 세` : "-"),
+    { title: "총 인원", dataIndex: "employeeCount", key: "employeeCount", align: "center",
+      render: (count) => `${count || 0}명`,
     },
-    {
-      title: "평균 근속연수", dataIndex: "avgYears", key: "avgYears", align: "center",
-      render: (value, record) => record.deptCode % 10 === 0 ? "-" : (value ? `${value.toFixed(1)} 년` : "-"),
+    { title: "(휴가/퇴직)", key: "status", align: "center",
+      render: (_, record) => {
+        if (record.deptCode % 10 === 0) return '-';
+        const stats = departmentStats[record.deptId];
+        return stats ? `${stats.breakCount} / ${stats.retiredCount}` : '0 / 0';
+      }
+    },
+    { title: "팀장", key: "teamLead", align: "center",
+      render: (_, record) => {
+        if (record.deptCode % 10 === 0) return '-';
+        const stats = departmentStats[record.deptId];
+        return stats ? stats.teamLeadName : '-';
+      }
+    },
+    { title: "정원 대비", key: "capacity", width: 150,
+      render: (_, record) => {
+        if (record.deptCode % 10 === 0 ) return '-';
+        const percent = (record.employeeCount / TEAM_CAPACITY) * 100;
+        return (
+          <div style={{ textAlign: 'center' }}>
+            <span>{`${record.employeeCount} / ${TEAM_CAPACITY}명`}</span>
+            <Progress percent={percent} showInfo={false} size="small" />
+          </div>
+        );
+      }
+    },
+    { title: "평균 근속", key: "avgYears", align: "center",
+      render: (_, record) => {
+        if (record.deptCode % 10 === 0) return '-';
+        return record.avgYears ? `${record.avgYears.toFixed(1)}년` : '-';
+      }
     },
   ];
 

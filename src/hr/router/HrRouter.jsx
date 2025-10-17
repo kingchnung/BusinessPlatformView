@@ -6,10 +6,12 @@ import MainLayout from "../../layouts/MainLayout";
 const Loading = <div>Loading...</div>;
 
 export default function hrRouter() {
+    console.log("✅ HrRouter 렌더링됨");
   return (
     <Suspense fallback={Loading}>
         <MainLayout>
             <Outlet />
+            
         </MainLayout>
     </Suspense>
   );

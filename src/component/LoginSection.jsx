@@ -35,11 +35,13 @@ const LoginSection = () => {
     try {
       // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
       const { user, token, refreshToken } = await loginUser(values);
+      
 
       // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
+
       dispatch(loginSuccess({ user, token }));
 
       message.success(`${user.empName || user.username}님 환영합니다 👋`);

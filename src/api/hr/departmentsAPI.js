@@ -41,7 +41,7 @@ export const fetchDepartmentDetail = async (deptId) => {
 /** 3️⃣ 신규 부서 등록 */
 export const createDepartment = async (data) => {
   try {
-    const res = await axiosInstance.post("/departments/add", data);
+    const res = await axiosInstance.post("/departments", data);
     message.success("부서 등록 완료");
     return res.data;
   } catch (error) {
@@ -64,15 +64,29 @@ export const updateDepartment = async (deptId, data) => {
   }
 };
 
-/** 5️⃣ 부서 삭제 */
-export const deleteDepartment = async (deptId) => {
+/** 5️⃣ 부서 비활성화 (Soft Delete) */
+export const deactivateDepartment = async (deptId) => {
   try {
-    const res = await axiosInstance.delete(`/departments/${deptId}`);
-    message.success("부서 삭제 완료");
-    return res.data;
+    // ✅ 기존 deleteDepartment 함수의 역할을 그대로 가져옵니다.
+    // 백엔드의 DELETE /{deptId}는 이제 비활성화를 처리합니다.
+    await axiosInstance.delete(`/departments/${deptId}`);
+    message.success("부서가 성공적으로 비활성화되었습니다.");
   } catch (error) {
-    message.error("부서 삭제 실패");
-    handleApiError(error);
+    const errorMessage = error.response?.data?.message || "부서 비활성화에 실패했습니다.";
+    message.error(errorMessage);
+    throw error;
+  }
+};
+
+/** 6️⃣ 부서 영구 삭제 (Hard Delete) - 신규 추가 */
+export const permanentlyDeleteDepartment = async (deptId) => {
+  try {
+    // ✅ 새로운 /permanent 엔드포인트를 호출합니다.
+    await axiosInstance.delete(`/departments/${deptId}/permanent`);
+    message.success("부서가 영구적으로 삭제되었습니다.");
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || "부서 영구 삭제에 실패했습니다.";
+    message.error(errorMessage);
     throw error;
   }
 };

@@ -6,9 +6,9 @@ import MainLayout from "../layouts/MainLayout";
 const MainPage = () => {
     return (
         <>
-            <MainLayout>
-                <MainDashboard />
-            </MainLayout>
+        <MainLayout>    
+        <MainDashboard />
+        </MainLayout>
         </>
     )
 }
