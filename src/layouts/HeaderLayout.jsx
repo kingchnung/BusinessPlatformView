@@ -11,7 +11,7 @@ const HeaderLayout = () => {
   const menuItems = [
     { key: "Main", label: "메인" },
     { key: "hr", label: "인사" },
-    { key: "Sales", label: "매출" },
+    { key: "Sales", label: "영업" },
     { key: "Project", label: "프로젝트" },
     { key: "approvals", label: "전자결재" },
     { key: "communications", label: "사내게시판" },
