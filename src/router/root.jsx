@@ -3,6 +3,8 @@ import { createBrowserRouter } from "react-router-dom";
 
 // --- 레이아웃 컴포넌트 Import ---
 import RootLayout from "./RootLayout"; // ✅ 1번에서 만든 최상위 레이아웃
+import AdminRouter from "../admin/router/AdminRouter";
+import adminRoutes from "../admin/router/AdminRoutes";
 import ApprovalRoutes from "../groupware/approval/router/ApprovalRoutes";
 import ApprovalRouter from "../groupware/approval/router/ApprovalRouter";
 import hrRoutes from "../hr/router/HrRoutes";
@@ -52,6 +54,11 @@ const root = createBrowserRouter([
         path:"hr",
         element:<HrRouter />,
         children: hrRoutes,
+      },
+      {
+        path :"admin",
+        element : <AdminRouter />,
+        children: adminRoutes,     
       },
     ],
   },

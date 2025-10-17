@@ -14,6 +14,8 @@ const EmployeEditor = lazy(() => import("../employee/pages/EmployeeEditFormPage"
 const DepartmentOverview = lazy(() => import("../department/pages/DepartmentOverviewPage"));
 const Dashboard = lazy(()=>import("../department/pages/DepartmentDashboardPage"));
 const DepartmentDetail = lazy(()=>import("../department/pages/DepartmentDetailPage"));
+const DepartmentAssign = lazy(()=>import("../department/pages/DepartmentAssignPage"));
+const DepartmentPromotion = lazy(()=>import("../department/pages/DepartmentPromosionPage"));
 
 // hr 기능과 관련된 라우트 배열 정의
 
@@ -59,6 +61,15 @@ const hrRoutes = [
     path : "department/:deptId",
     element : <Suspense fallback={Loading}><DepartmentDetail /></Suspense>,
   },
+  {
+    path : "department/assign",
+    element : <Suspense fallback={Loading}><DepartmentAssign /></Suspense>
+  },
+  {
+    path : "department/promotion",
+    element : <Suspense fallback={Loading}><DepartmentPromotion /></Suspense>
+  },
+
 ];
 
 export default hrRoutes;

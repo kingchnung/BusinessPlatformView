@@ -4,7 +4,8 @@ import {
   fetchDepartmentDetail,
   createDepartment,
   updateDepartment,
-  deleteDepartment,
+  deactivateDepartment,
+  permanentlyDeleteDepartment,
 } from "../../../api/hr/departmentsAPI";
 
 /**
@@ -30,25 +31,38 @@ export const getDepartmentDetail = createAsyncThunk(
 );
 
 // 🔹 3️⃣ 신규 부서 등록
-export const addDepartment = createAsyncThunk("department/add", async (deptData) => {
+export const addDepartment = createAsyncThunk(
+  "department/add", async (deptData) => {
   const data = await createDepartment(deptData);
   return data;
 });
 
 // 🔹 4️⃣ 부서 수정
 export const editDepartment = createAsyncThunk(
-  "department/update",
-  async ({ deptId, deptData }) => {
+  "department/update", async ({ deptId, deptData }) => {
     const data = await updateDepartment(deptId, deptData);
     return data;
   }
 );
 
 // 🔹 5️⃣ 부서 삭제
-export const removeDepartment = createAsyncThunk("department/delete", async (deptId) => {
-  const data = await deleteDepartment(deptId);
-  return { deptId, data };
-});
+export const softDeleteDepartment = createAsyncThunk(
+  "department/softDelete",
+  async (deptId) => {
+    // deleteDepartment -> deactivateDepartment
+    await deactivateDepartment(deptId); 
+    return { deptId }; // 성공 시 deptId를 반환하여 리듀서에서 사용
+  }
+);
+
+// ✅ 3. '영구 삭제'를 위한 새로운 thunk를 추가합니다.
+export const hardDeleteDepartment = createAsyncThunk(
+  "department/hardDelete",
+  async (deptId) => {
+    await permanentlyDeleteDepartment(deptId);
+    return { deptId };
+  }
+);
 
 const departmentSlice = createSlice({
   name: "department",
@@ -97,7 +111,12 @@ const departmentSlice = createSlice({
       })
 
       // 삭제
-      .addCase(removeDepartment.fulfilled, (state, action) => {
+      .addCase(softDeleteDepartment.fulfilled, (state, action) => {
+        state.departments = state.departments.filter(
+          (dept) => dept.deptId !== action.payload.deptId
+        );
+      })
+      .addCase(hardDeleteDepartment.fulfilled, (state, action) => {
         state.departments = state.departments.filter(
           (dept) => dept.deptId !== action.payload.deptId
         );
