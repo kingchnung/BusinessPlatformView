@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {  Button,  Form,  Input,  Modal,  message,  Space,  Popconfirm,
+import {
+  Button, Form, Input, Modal, message, Space, Popconfirm,
 } from "antd";
 import {
   LoginOutlined,
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
 import { loginUser } from "../api/login/authApi";
+import { jwtDecode } from "jwt-decode";
 
 const LoginSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,8 +26,20 @@ const LoginSection = () => {
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
+
     if (savedToken && savedUser) {
-      dispatch(loginSuccess({ token: savedToken, user: JSON.parse(savedUser) }));
+      const parsedUser = JSON.parse(savedUser);
+      dispatch(
+        loginSuccess({
+          token: savedToken,
+          user: {
+            ...parsedUser,
+            deptName: parsedUser.deptName || "소속 부서 미지정",
+            deptCode: parsedUser.deptCode || "-",
+            ...parsedUser,
+          },
+        })
+      );
     }
   }, [dispatch]);
 
@@ -36,18 +50,33 @@ const LoginSection = () => {
       // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
       const { user, token, refreshToken } = await loginUser(values);
 
+      const decoded = jwtDecode(token);
+      console.log("Decoded Token : ", decoded);
+
+      console.log("✅ [Login Response user data]:", JSON.stringify(user, null, 2));
+
+      const userWithDept = {
+        ...user,
+        deptName: decoded.deptName || "소속 부서 미지정",
+        deptCode: decoded.deptCode || "-",
+        empName: decoded.empName || user.empName,
+        email: decoded.email || user.email,
+        username: decoded.username,
+      };
+
       // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      dispatch(loginSuccess({ user, token }));
+      localStorage.setItem("user", JSON.stringify(userWithDept));
+      dispatch(loginSuccess({ user: userWithDept, token }));
 
-      message.success(`${user.empName || user.username}님 환영합니다 👋`);
+      message.success(`${userWithDept.deptName} ${userWithDept.empName}님 환영합니다 👋`);
       setIsModalOpen(false);
       navigate("/main");
 
+
     } catch (err) {
-      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.", {err});
+      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.", { err });
     } finally {
       setLoading(false);
     }
@@ -70,7 +99,7 @@ const LoginSection = () => {
           <>
             <span style={{ color: "#fff", marginRight: 8 }}>
               <UserOutlined style={{ marginRight: 4 }} />
-              {user?.username} {user?.empName} 님 환영합니다 😊
+              {user?.deptName || "소속 부서 미지정"} {user.empName} 님 환영합니다 😊
             </span>
 
             <Popconfirm

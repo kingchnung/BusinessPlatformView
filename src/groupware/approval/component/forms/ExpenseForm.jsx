@@ -3,33 +3,17 @@ import { Form, Input, InputNumber, DatePicker, Button, Space } from "antd";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { TextArea } = Input;
 
 const ExpenseForm = ({ value = {}, onChange }) => {
     const { user: currentUser } = useSelector((state) => state.auth);
+    useFormInitializer(currentUser, value, onChange);
     const update = (key, val) => {
         const newValue = { ...value, [key]: val };
         onChange?.(newValue);
     };
-
-    // ✅ 최초 기본값 자동 세팅
-    useEffect(() => {
-        if (currentUser) {
-            update("drafterName", currentUser.empName);
-            update("drafterDept", currentUser.deptName);
-            update("createdDate", dayjs());
-            update("expenseItems", value.expenseItems || [{ name: "", amount: 0, note: "" }]);
-        }
-    }, [currentUser]);
-
-    // ✅ 항목 합계 계산 (실시간)
-    const totalAmount = useMemo(() => {
-        return (value.expenseItems || []).reduce(
-            (sum, item) => sum + (Number(item.amount) || 0),
-            0
-        );
-    }, [value.expenseItems]);
 
     // ✅ 항목 변경 처리
     const handleItemChange = (index, field, val) => {

@@ -12,6 +12,7 @@ import {
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
@@ -19,28 +20,21 @@ const { TextArea } = Input;
 const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  useFormInitializer(currentUser, value, onChange);
+
   const update = (key, val) => {
     const newValue = { ...value, [key]: val };
     onChange?.(newValue);
   };
 
-  // ✅ 기본값 자동 설정
-  useEffect(() => {
-    if (currentUser) {
-      update("drafterName", currentUser.empName);
-      update("drafterDept", currentUser.deptName);
-      update("createdDate", dayjs());
-      if (!value.budgetItems) update("budgetItems", [{ category: "", amount: 0 }]);
-    }
-  }, [currentUser]);
 
-  // ✅ 프로젝트 기간 계산
+  /** ✅ 프로젝트 기간 변경 핸들러 */
   const handleDateChange = (dates) => {
     if (dates && dates.length === 2) {
       const [start, end] = dates;
       const duration = end.diff(start, "day") + 1;
-      update("startDate", start);
-      update("endDate", end);
+      update("startDate", start.format("YYYY-MM-DD"));
+      update("endDate", end.format("YYYY-MM-DD"));
       update("duration", duration);
     } else {
       update("startDate", null);
@@ -86,7 +80,14 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
       </Form.Item>
 
       <Form.Item label="작성일">
-        <Input value={dayjs().format("YYYY-MM-DD")} readOnly />
+        <Input
+          value={
+            value.createdDate
+              ? dayjs(value.createdDate).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD")
+          }
+          readOnly
+        />
       </Form.Item>
 
       <Divider />
@@ -146,6 +147,8 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
           }
         />
       </Form.Item>
+
+      <Divider />
 
       {/* 예산 항목 */}
       <Form.Item label="예산 항목" required>

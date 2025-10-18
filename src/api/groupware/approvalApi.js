@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosInstance from "../../common/axiosInstance";
 import { message } from "antd";
 
@@ -114,7 +115,7 @@ export const rejectDocument = async (docId, reason) => {
 /**
  * 7️⃣ 파일 업로드 (문서 ID 있을 수도 / 없을 수도 있음)
  */
-export const uploadFile = async (file, docId) => {
+export const uploadFile = async (file, docId = null) => {
   try {
     const formData = new FormData();
     formData.append("file", file);
@@ -141,10 +142,14 @@ export const uploadFile = async (file, docId) => {
 /**
  * 8️⃣ 파일 미리보기 (새 창)
  */
-export const previewFile = (id) => {
-  // const token = localStorage.getItem("token");
-  const url = `http://localhost:8080/api/upload/download/${id}?inline=true`;
-  window.open(url, "_blank");
+export const previewFileAxios = async (id) => {
+  const res = await axios.get(`http://localhost:8080/api/attachments/preview/${id}`, {
+    responseType: "blob", // ✅ 파일 스트림으로 받기
+  });
+
+  const blob = new Blob([res.data]);
+  const url = window.URL.createObjectURL(blob);
+  window.open(url); // 새 탭으로 미리보기
 };
 
 /**
@@ -152,7 +157,7 @@ export const previewFile = (id) => {
  */
 export const downloadFile = async (id) => {
   try {
-    const response = await axiosInstance.get(`/upload/download/${id}`, {
+    const response = await axiosInstance.get(`/attachments/download/${id}`, {
       responseType: "blob",
     });
     console.log("📥 파일 다운로드 성공:", response);

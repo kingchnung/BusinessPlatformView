@@ -3,46 +3,56 @@ import { Form, Input, DatePicker, Select, message } from "antd";
 import { fetchEmployeeDetail, fetchEmployees } from "../../../../api/hr/employeeApi";
 import { fetchDepartments } from "../../../../api/hr/departmentsAPI";
 import { fetchPositions } from "../../../../api/hr/positionAPI";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
-const HRMoveForm = ({ value = {}, onChange }) => {
+const HRMoveForm = ({ value = {}, onChange, departmentOptions = [], employeeOptions = [] }) => {
+
+    const { user: currentUser } = useSelector((s) => s.auth);
+    useFormInitializer(currentUser, value, onChange);
+
     const update = (key, val) => {
         const newValue = { ...value, [key]: val };
         onChange?.(newValue);
     };
 
     // ✅ 셀렉트용 상태
-    const [employeeOptions, setEmployeeOptions] = useState([]);
-    const [departmentOptions, setDepartmentOptions] = useState([]);
-    const [positionOptions, setPositionOptions] = useState([]);
+    const [employeeList, setEmployeeList] = useState([]);
+    const [departmentList, setDepartmentList] = useState([]);
+    const [positionList, setPositionList] = useState([]);
 
     // ✅ 데이터 로드
     useEffect(() => {
         const load = async () => {
             try {
-                const employees = await fetchEmployees();
-                const departments = await fetchDepartments();
-                const positions = await fetchPositions();
+                const [employees, departments, positions] = await Promise.all([
+                    fetchEmployees(),
+                    fetchDepartments(),
+                    fetchPositions(),
+                ]);
 
-                setEmployeeOptions(
+                setEmployeeList(
                     employees.map((e) => ({
                         label: `${e.empName} (${e.deptName})`,
                         value: e.empId,
                     }))
                 );
-                setDepartmentOptions(
+
+                setDepartmentList(
                     departments.map((d) => ({
                         label: d.deptName,
                         value: d.deptId,
                     }))
                 );
-                setPositionOptions(
+
+                setPositionList(
                     positions.map((p) => ({
                         label: p.positionName,
                         value: p.positionCode,
                     }))
                 );
             } catch (err) {
-                message.error("기초 데이터 조회 실패", err);
+                console.error(err);
+                message.error("기초 데이터 조회 실패");
             }
         };
         load();
@@ -51,18 +61,27 @@ const HRMoveForm = ({ value = {}, onChange }) => {
 
     // ✅ 직원 선택 시 상세 조회 → 상위로 전달
     const handleSelectEmployee = async (empId) => {
-        update("targetEmpId", empId);
         try {
             const emp = await fetchEmployeeDetail(empId);
             console.log("📋 직원 상세:", emp);
 
-            update("prevDept", emp.deptName || "");
-            update("prevPosition", emp.positionName || "");
-            update("targetEmpName", emp.empName || "");
+            // 여러 필드를 한 번에 갱신 (무한 렌더 방지)
+            onChange?.({
+                ...value,
+                targetEmpId: empId,
+                targetEmpName: emp.empName || "",
+                prevDept: emp.deptName || "",
+                prevPosition: emp.positionName || "",
+            });
         } catch (e) {
             console.error(e);
             message.error("직원 조회 실패");
         }
+    };
+
+    // ✅ DatePicker 값 처리
+    const handleDateChange = (date) => {
+        update("effectiveDate", date ? date.format("YYYY-MM-DD") : null);
     };
 
     return (
@@ -100,8 +119,8 @@ const HRMoveForm = ({ value = {}, onChange }) => {
             {/* 발령일자 */}
             <Form.Item label="발령일자">
                 <DatePicker
-                    value={value.effectiveDate}
-                    onChange={(d) => update("effectiveDate", d)}
+                    value={value.effectiveDate ? dayjs(value.effectiveDate) : null} // 🔄 (수정) 문자열 → dayjs 변환
+                    onChange={handleDateChange}
                     style={{ width: "100%" }}
                 />
             </Form.Item>
@@ -128,7 +147,7 @@ const HRMoveForm = ({ value = {}, onChange }) => {
                 <Select
                     showSearch
                     placeholder="부서를 선택하세요"
-                    options={departmentOptions}
+                    options={departmentList}
                     value={value.newDeptId}
                     onChange={(v) => update("newDeptId", v)}
                     filterOption={(input, option) =>
@@ -141,7 +160,7 @@ const HRMoveForm = ({ value = {}, onChange }) => {
                 <Select
                     showSearch
                     placeholder="직위를 선택하세요"
-                    options={positionOptions}
+                    options={positionList}
                     value={value.newPositionCode}
                     onChange={(v) => update("newPositionCode", v)}
                     filterOption={(input, option) =>
