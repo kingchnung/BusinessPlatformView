@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, message, Card, Spin, Button, Space, Modal, Input, Row, Col, Select } from "antd";
-// 👇 [수정] removeClients API 함수를 import 합니다.
-import { getClientList, removeClient, removeClients } from "../../api/sales/clientApi"; 
+import { getClientList, removeClient, removeClients } from "../../api/sales/clientApi";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
@@ -18,7 +17,7 @@ const ClientListPage = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState(null);
+  const [editingClient, setEditingClient] = useState(null); // 수정할 데이터를 담을 state
 
   const navigate = useNavigate();
 
@@ -40,14 +39,14 @@ const ClientListPage = () => {
       setLoading(false);
     }
   };
-  
+
   const handleSearch = () => {
-    loadClients(1, pagination.pageSize);
+    loadClients(1, pagination.pageSize); 
   }
 
   useEffect(() => {
     loadClients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleTableChange = (paginationConfig) => {
@@ -55,8 +54,13 @@ const ClientListPage = () => {
   };
   
   const showModal = (client = null) => {
-    // ❗ 로그인 여부 확인 로직은 백엔드 API 호출 시 자동으로 처리되므로
-    // 프론트엔드에서 토큰을 직접 확인할 필요가 없습니다. (axiosInstance가 처리)
+    const token = localStorage.getItem("token");
+    if (!token) {
+      message.warning("로그인이 필요한 기능입니다.");
+      navigate("/login");
+      return;
+    }
+    
     setIsModalOpen(true);
     setEditingClient(client);
   };
@@ -86,7 +90,7 @@ const ClientListPage = () => {
       okText: "삭제", okType: "danger", cancelText: "취소",
       async onOk() {
         try {
-          await removeClients(selectedRowKeys);
+          await removeClients(selectedRowKeys); 
           message.success("선택된 거래처들이 삭제되었습니다.");
           setSelectedRowKeys([]);
           loadClients();
@@ -105,29 +109,32 @@ const ClientListPage = () => {
   };
 
   const columns = [
-    { title: "사업자번호", dataIndex: "clientId", key: "clientId", align: "center", width:"15%" },
+    { title: "사업자번호", dataIndex: "clientId", key: "clientId", align: "center", width: "15%" },
     { 
       title: "거래처명", 
       dataIndex: "clientCompany", 
       key: "clientCompany",
-      // 👇 [수정] 상세 페이지로 이동하는 링크 추가
       render: (text, record) => (
-        <a onClick={() => navigate(`/sales/client/${record.clientNo}`)}>
+        <a onClick={() => showModal(record)}>
           {text}
         </a>
       )
     },
-    { title: "대표자", dataIndex: "clientCeo", key: "clientCeo", align: "center", width:"10%" },
-    { title: "연락처", dataIndex: "clientContact", key: "clientContact", align: "center", width:"15%" },
-    { title: "담당자", dataIndex: "writer", key: "writer", align: "center", width:"10%" },
+    { title: "대표자", dataIndex: "clientCeo", key: "clientCeo", align: "center", width: "10%" },
+    { title: "연락처", dataIndex: "clientContact", key: "clientContact", align: "center", width: "15%" },
+    { title: "담당자", dataIndex: "writer", key: "writer", align: "center", width: "10%" },
     {
       title: "관리",
-      key: "actions", align: "center", width:"15%",
+      key: "actions", align: "center", width: "10%",
+
       render: (_, record) => (
-          <Space>
-            <Button size="small" onClick={() => showModal(record)}>수정</Button>
-            <Button size="small" danger onClick={() => showDeleteConfirm(record.clientNo)}>삭제</Button>
-          </Space>
+          <Button 
+            size="small" 
+            danger 
+            onClick={() => showDeleteConfirm(record.clientNo)}
+          >
+            삭제
+          </Button>
       ),
     },
   ];
@@ -137,7 +144,7 @@ const ClientListPage = () => {
   return (
     <MainLayout>
       <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>거래처 관리</h2>
-      
+
       <Card style={{ marginBottom: 20 }}>
         <Row gutter={16} justify="space-between" align="middle">
           <Col>
@@ -150,6 +157,8 @@ const ClientListPage = () => {
                 <Option value="clientCompany">거래처명</Option>
                 <Option value="clientId">사업자번호</Option>
                 <Option value="clientCeo">대표자</Option>
+                <Option value="clientBusinessType">업종</Option>
+                <Option value="userId">담당자 사원번호</Option>
               </Select>
               <Input 
                 placeholder="검색어를 입력해주세요" 
@@ -174,7 +183,7 @@ const ClientListPage = () => {
           </Col>
         </Row>
       </Card>
-      
+
       <Spin spinning={loading} tip="로딩 중...">
         <Table
           rowSelection={rowSelection}

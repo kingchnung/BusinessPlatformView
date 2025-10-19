@@ -21,7 +21,7 @@ const ClientList = () => {
   const loadClients = async (page = 1, size = 10) => {
     setLoading(true);
     try {
-      const res = await getClientList(page, size); // 3. API 함수 사용
+      const res = await getClientList(page, size);
       if (res && res.dtoList) {
         setClients(res.dtoList);
         setPagination({
@@ -111,7 +111,7 @@ const ClientList = () => {
       render: (date) => (date ? new Date(date).toLocaleDateString("ko-KR") : "-"),
     },
     {
-      title: "관리",
+      title: "선택",
       key: "actions",
       align: "center",
       width: "10%",
