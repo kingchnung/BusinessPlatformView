@@ -23,7 +23,7 @@ const approvalRoutes = [
     element: <Suspense fallback={Loading}><ApprovalDetail /></Suspense>,
   },
   {
-    path: ":docId/draft", // '/approvals/456/draft'
+    path: ":docId/edit", // '/approvals/456/draft'
     element: <Suspense fallback={Loading}><EditDraft /></Suspense>,
   },
   {

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Descriptions, Tag, List, Card, message, Button, Divider, Space, Typography, Empty, Modal, Input, } from "antd";
-import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, } from "@ant-design/icons";
+import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, DownloadOutlined, EyeOutlined, } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { approveDocument, getApprovalDetail, rejectDocument, } from "../../../api/groupware/approvalApi";
+import { approveDocument, downloadPdf, getApprovalDetail, previewPdf, rejectDocument, } from "../../../api/groupware/approvalApi";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -179,16 +179,6 @@ const ApprovalDetail = ({ docId }) => {
         );
     }
 
-    // ✅ PDF 미리보기
-    const handlePreviewPdf = (docId) => {
-        window.open(`http://localhost:8080/api/approvals/pdf/${docId}`, "_blank");
-    };
-
-    // ✅ PDF 다운로드
-    const handleDownloadPdf = (docId) => {
-        window.open(`http://localhost:8080/api/approvals/pdf/${docId}?download=true`, "_blank");
-    };
-
     /* ===========================================================
        ✅ 렌더링 시작
     =========================================================== */
@@ -203,17 +193,35 @@ const ApprovalDetail = ({ docId }) => {
                     marginBottom: 16,
                 }}
             >
+                <Tag color={statusColors[detail.status]} style={{ fontSize: 14 }}>
+                    {detail.status}
+                </Tag>
+
                 <Space>
-                    <Tag color={statusColors[detail.status]} style={{ fontSize: 14 }}>
-                        {detail.status}
-                    </Tag>
+                    <Button
+                        icon={<EyeOutlined />}
+                        onClick={() => previewPdf(detail.docId || detail.id)}
+                        size="middle"
+                        style={{
+                            borderRadius: 6,
+                            fontWeight: 500,
+                        }}
+                    >
+                        PDF 미리보기
+                    </Button>
+                    <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        onClick={() => downloadPdf(detail.docId || detail.id)}
+                        size="middle"
+                        style={{
+                            borderRadius: 6,
+                            fontWeight: 500,
+                        }}
+                    >
+                        PDF 다운로드
+                    </Button>
                 </Space>
-                <Button type="default" onClick={() => handlePreviewPdf(detail.docId)}>
-                    PDF 미리보기
-                </Button>
-                <Button type="primary" onClick={() => handleDownloadPdf(detail.docId)}>
-                    PDF 다운로드
-                </Button>
             </div>
 
             {/* ✅ 문서 기본정보 */}

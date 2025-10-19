@@ -18,7 +18,16 @@ const ExpenseForm = ({ value = {}, onChange }) => {
     // ✅ 항목 변경 처리
     const handleItemChange = (index, field, val) => {
         const updated = [...(value.expenseItems || [])];
-        updated[index][field] = val;
+
+        // 현재 항목 복사
+        const current = { ...updated[index], [field]: val };
+
+        // 🧮 단가/수량 중 하나가 변경되면 자동 계산
+        const unit = Number(field === "unitPrice" ? val : current.unitPrice) || 0;
+        const qty = Number(field === "quantity" ? val : current.quantity) || 0;
+        current.amount = unit * qty;
+
+        updated[index] = current;
         update("expenseItems", updated);
     };
 
@@ -33,6 +42,12 @@ const ExpenseForm = ({ value = {}, onChange }) => {
         updated.splice(index, 1);
         update("expenseItems", updated);
     };
+
+    // 🆕 총 지출 금액 자동 계산
+    const totalAmount = useMemo(() => {
+        const items = value.expenseItems || [];
+        return items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    }, [value.expenseItems]);
 
     return (
         <>
@@ -62,7 +77,7 @@ const ExpenseForm = ({ value = {}, onChange }) => {
                 />
             </Form.Item>
 
-            {/* 지출 항목 리스트 */}
+            {/* 🆕 지출 항목 리스트 (비고 제거 / 수량 추가) */}
             <Form.Item label="지출 항목" required>
                 {(value.expenseItems || []).map((item, index) => (
                     <Space
@@ -75,29 +90,42 @@ const ExpenseForm = ({ value = {}, onChange }) => {
                         }}
                         align="baseline"
                     >
+                        {/* 항목명 */}
                         <Input
                             placeholder="항목명 (예: 교통비)"
-                            style={{ flex: 2, minWidth: 250 }}
+                            style={{ flex: 2, minWidth: 200 }}
                             value={item.name}
                             onChange={(e) => handleItemChange(index, "name", e.target.value)}
                         />
+                        {/* 단가 */}
                         <InputNumber
-                            placeholder="금액"
+                            placeholder="단가"
                             min={0}
+                            style={{ flex: 1, minWidth: 120 }}
+                            value={item.unitPrice}
+                            onChange={(val) => handleItemChange(index, "unitPrice", val)}
+                        />
+                        {/* 수량 */}
+                        <InputNumber
+                            placeholder="수량"
+                            min={1}
+                            style={{ flex: 1, minWidth: 100 }}
+                            value={item.quantity}
+                            onChange={(val) => handleItemChange(index, "quantity", val)}
+                        />
+                        {/* 금액 자동 계산 */}
+                        <Input
+                            value={(item.amount || 0).toLocaleString()}
+                            readOnly
+                            prefix="₩"
                             style={{
                                 flex: 1,
-                                minWidth: 150,
+                                minWidth: 140,
+                                backgroundColor: "#fafafa",
                                 textAlign: "right",
                             }}
-                            value={item.amount}
-                            onChange={(val) => handleItemChange(index, "amount", val)}
                         />
-                        <Input
-                            placeholder="비고 (예: 회의 참석)"
-                            style={{ flex: 2, minWidth: 250 }}
-                            value={item.note}
-                            onChange={(e) => handleItemChange(index, "note", e.target.value)}
-                        />
+                        {/* 삭제 버튼 */}
                         <Button
                             type="text"
                             danger
