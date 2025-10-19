@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Form, Input, DatePicker, Select, InputNumber } from "antd";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
@@ -9,20 +10,12 @@ const { TextArea } = Input;
 const LeaveForm = ({ value = {}, onChange }) => {
     const { user: currentUser } = useSelector((state) => state.auth);
     const [remainingLeave, setRemainingLeave] = useState(12); // 기본 잔여연차 (API 연동 가능)
+    useFormInitializer(currentUser, value, onChange);
 
     const update = (key, val) => {
         const newValue = { ...value, [key]: val };
         onChange?.(newValue);
     };
-
-    // ✅ 기본정보 자동 채움
-    useEffect(() => {
-        if (currentUser) {
-            update("drafterName", currentUser.empName);
-            update("drafterDept", currentUser.deptName);
-            update("createdDate", dayjs());
-        }
-    }, [currentUser]);
 
     // ✅ 휴가 기간 선택 시 일수 계산
     const handleDateChange = (dates) => {
@@ -41,12 +34,23 @@ const LeaveForm = ({ value = {}, onChange }) => {
 
     // ✅ 휴가 유형 변경 시 기본 문구 자동 삽입
     const handleTypeChange = (val) => {
+        const typeMessages = {
+            연차: "연차 사용을 신청합니다.",
+            반차: "반차 사용을 신청합니다.",
+            병가: "병가 사유로 인한 휴가를 신청합니다.",
+            경조사: "가족 경조사로 인한 휴가를 신청합니다.",
+            기타: "",
+        };
         update("leaveType", val);
-        if (val === "연차") update("reason", "연차 사용을 신청합니다.");
-        if (val === "반차") update("reason", "반차 사용을 신청합니다.");
-        if (val === "병가") update("reason", "병가 사유로 인한 휴가를 신청합니다.");
-        if (val === "경조사") update("reason", "가족 경조사로 인한 휴가를 신청합니다.");
+        update("reason", typeMessages[val] || "");
     };
+
+    // ✅ 잔여연차 계산 (useMemo로 최적화)
+    const usedLeave = useMemo(() => value.leaveDays || 0, [value.leaveDays]);
+    const calculatedRemaining = useMemo(
+        () => remainingLeave - usedLeave,
+        [remainingLeave, usedLeave]
+    );
 
     return (
         <>
@@ -59,9 +63,15 @@ const LeaveForm = ({ value = {}, onChange }) => {
                 <Input value={value.drafterDept || ""} readOnly />
             </Form.Item>
 
-            {/* 작성일 */}
             <Form.Item label="작성일">
-                <Input value={dayjs().format("YYYY-MM-DD")} readOnly />
+                <Input
+                    value={
+                        value.createdDate
+                            ? dayjs(value.createdDate).format("YYYY-MM-DD")
+                            : dayjs().format("YYYY-MM-DD")
+                    }
+                    readOnly
+                />
             </Form.Item>
 
             {/* 휴가 유형 */}
@@ -106,7 +116,7 @@ const LeaveForm = ({ value = {}, onChange }) => {
             {/* 잔여 연차 */}
             <Form.Item label="잔여 연차">
                 <InputNumber
-                    value={remainingLeave - (value.leaveDays || 0)}
+                    value={calculatedRemaining}
                     readOnly
                     addonAfter="일"
                     style={{ width: "100%" }}

@@ -3,39 +3,34 @@ import { Form, Input, InputNumber, Button, Space, Divider } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { TextArea } = Input;
 
 const PurchaseForm = ({ value = {}, onChange }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  useFormInitializer(currentUser, value, onChange);
+
+  /** ✅ 상위 상태 업데이트 핸들러 */
   const update = (key, val) => {
     const newValue = { ...value, [key]: val };
     onChange?.(newValue);
   };
 
-  // ✅ 기본값 자동 설정
-  useEffect(() => {
-    if (currentUser) {
-      update("drafterName", currentUser.empName);
-      update("drafterDept", currentUser.deptName);
-      update("createdDate", dayjs());
-      if (!value.items || value.items.length === 0) {
-        update("items", [{ itemName: "", qty: 1, unitPrice: 0, remark: "" }]);
-      }
-    }
-  }, [currentUser]);
-
-  // ✅ 항목별 변경 처리
+  /** ✅ 항목별 변경 처리 */
   const handleItemChange = (index, field, val) => {
     const updated = [...(value.items || [])];
     updated[index][field] = val;
     update("items", updated);
   };
 
-  // ✅ 항목 추가/삭제
+  /** ✅ 항목 추가/삭제 */
   const addItem = () => {
-    const updated = [...(value.items || []), { itemName: "", qty: 1, unitPrice: 0, remark: "" }];
+    const updated = [
+      ...(value.items || []),
+      { itemName: "", qty: 1, unitPrice: 0, remark: "" },
+    ];
     update("items", updated);
   };
 
@@ -45,7 +40,7 @@ const PurchaseForm = ({ value = {}, onChange }) => {
     update("items", updated);
   };
 
-  // ✅ 총 금액 계산
+  /** ✅ 금액 계산 (useMemo로 최적화) */
   const subtotal = useMemo(() => {
     return (value.items || []).reduce(
       (sum, item) => sum + (Number(item.qty) || 0) * (Number(item.unitPrice) || 0),
@@ -58,7 +53,9 @@ const PurchaseForm = ({ value = {}, onChange }) => {
 
   return (
     <>
-      {/* 기본정보 */}
+      {/* ===========================
+          기본정보
+      ============================ */}
       <Form.Item label="작성자">
         <Input value={value.drafterName || ""} readOnly />
       </Form.Item>
@@ -68,12 +65,21 @@ const PurchaseForm = ({ value = {}, onChange }) => {
       </Form.Item>
 
       <Form.Item label="작성일">
-        <Input value={dayjs().format("YYYY-MM-DD")} readOnly />
+        <Input
+          value={
+            value.createdDate
+              ? dayjs(value.createdDate).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD")
+          }
+          readOnly
+        />
       </Form.Item>
 
       <Divider />
 
-      {/* 구매 항목 */}
+      {/* ===========================
+          구매 항목
+      ============================ */}
       <Form.Item label="구매 항목" required>
         {(value.items || []).map((item, index) => (
           <Space
@@ -87,23 +93,27 @@ const PurchaseForm = ({ value = {}, onChange }) => {
           >
             <Input
               placeholder="품목명"
-              style={{ flex: 2, minWidth: 250 }}
+              style={{ flex: 2, minWidth: 180 }}
               value={item.itemName}
-              onChange={(e) => handleItemChange(index, "itemName", e.target.value)}
+              onChange={(e) =>
+                handleItemChange(index, "itemName", e.target.value)
+              }
             />
             <InputNumber
               placeholder="수량"
               min={1}
-              style={{ flex: 1, minWidth: 100 }}
+              style={{ flex: 1, minWidth: 90 }}
               value={item.qty}
               onChange={(val) => handleItemChange(index, "qty", val)}
             />
             <InputNumber
               placeholder="단가"
               min={0}
-              style={{ flex: 1.5, minWidth: 150 }}
+              style={{ flex: 1.5, minWidth: 120 }}
               value={item.unitPrice}
-              formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              formatter={(val) =>
+                `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
               parser={(val) => val.replace(/,/g, "")}
               onChange={(val) => handleItemChange(index, "unitPrice", val)}
             />
@@ -111,11 +121,15 @@ const PurchaseForm = ({ value = {}, onChange }) => {
               readOnly
               value={((item.qty || 0) * (item.unitPrice || 0)).toLocaleString()}
               prefix="₩"
-              style={{ flex: 1.5, textAlign: "right", background: "#fafafa" }}
+              style={{
+                flex: 1.5,
+                textAlign: "right",
+                background: "#fafafa",
+              }}
             />
             <Input
               placeholder="비고"
-              style={{ flex: 2, minWidth: 200 }}
+              style={{ flex: 2, minWidth: 160 }}
               value={item.remark}
               onChange={(e) => handleItemChange(index, "remark", e.target.value)}
             />
@@ -141,13 +155,17 @@ const PurchaseForm = ({ value = {}, onChange }) => {
 
       <Divider />
 
-      {/* 금액 요약 */}
+      {/* ===========================
+          금액 요약
+      ============================ */}
       <Form.Item label="소계">
         <Input prefix="₩" value={subtotal.toLocaleString()} readOnly />
       </Form.Item>
+
       <Form.Item label="부가세 (10%)">
         <Input prefix="₩" value={vat.toLocaleString()} readOnly />
       </Form.Item>
+
       <Form.Item label="총 합계 금액">
         <Input
           prefix="₩"
@@ -159,7 +177,9 @@ const PurchaseForm = ({ value = {}, onChange }) => {
 
       <Divider />
 
-      {/* 예산 항목 / 구매 사유 */}
+      {/* ===========================
+          예산 및 구매 사유
+      ============================ */}
       <Form.Item label="예산 항목">
         <Input
           placeholder="예: 개발 장비 예산 / 복리후생비"

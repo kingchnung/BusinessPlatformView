@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Form, Input, InputNumber, DatePicker, Select, Divider } from "antd";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { TextArea } = Input;
 
@@ -12,19 +13,12 @@ const EstimateProposalForm = ({
 }) => {
     const { user: currentUser } = useSelector((state) => state.auth);
 
+    useFormInitializer(currentUser, value, onChange);
     const update = (key, val) => {
         const newValue = { ...value, [key]: val };
         onChange?.(newValue);
     };
 
-    // ✅ 기본값 자동 설정
-    useEffect(() => {
-        if (currentUser) {
-            update("drafterName", currentUser.empName);
-            update("drafterDept", currentUser.deptName);
-            update("createdDate", dayjs());
-        }
-    }, [currentUser]);
 
     return (
         <>

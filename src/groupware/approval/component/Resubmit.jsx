@@ -10,8 +10,10 @@ import {
   Typography,
   Divider,
   Upload,
+  Popconfirm,
+  List,
 } from "antd";
-import { UploadOutlined, ArrowLeftOutlined, RedoOutlined } from "@ant-design/icons";
+import { UploadOutlined, ArrowLeftOutlined, RedoOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getApprovalDetail, resubmitDocument } from "../../../api/groupware/approvalApi";
 
@@ -24,22 +26,16 @@ const Resubmit = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState(location.state || null);
+  const [fileList, setFileList] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
   const currentUser = JSON.parse(localStorage.getItem("user"));
 
   // ✅ 문서 로드
   useEffect(() => {
-    const fetchDetail = async () => {
-      if (detail) return;
-      try {
-        const res = await getApprovalDetail(docId);
-        setDetail(res);
-      } catch (err) {
-        console.error("❌ 문서 상세 조회 실패:", err);
-        message.error("문서 정보를 불러올 수 없습니다.");
-      }
-    };
-    fetchDetail();
-  }, [docId]);
+    if (detail && detail.attachments) {
+      setExistingFiles(detail.attachments || []);
+    }
+  }, [detail]);
 
   // ✅ form 초기값
   useEffect(() => {
@@ -52,6 +48,16 @@ const Resubmit = () => {
       console.log("📄 재상신 문서 로드 완료:", detail);
     }
   }, [detail, form]);
+
+  // ✅ 기존 파일 삭제 핸들러
+  const handleRemoveExisting = (id) => {
+    setExistingFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  // ✅ 새 파일 업로드 핸들러
+  const handleFileChange = ({ fileList: newList }) => {
+    setFileList(newList);
+  };
 
   // ✅ 재상신 처리
   const handleResubmit = async (values) => {
@@ -67,16 +73,23 @@ const Resubmit = () => {
         ...detail,
         title: values.title,
         docContent: { ...detail.docContent, 수정내용: values.comment || "수정없음" },
-        departmentId: detail.departmentId,
-        departmentCode: detail.departmentCode,
-        departmentName: detail.departmentName,
+        departmentId: detail.department?.deptId || detail.departmentId,
+        departmentCode: detail.department?.deptCode || detail.departmentCode,
+        departmentName: detail.department?.deptName || detail.departmentName,
         username: currentUser.username,
         userId: currentUser.userId,
+        // ✅ 남은 첨부파일 유지
+        attachments: existingFiles.map((f) => ({
+          id: f.id,
+          originalName: f.originalName,
+          storedName: f.storedName,
+        })),
       };
 
-      console.log("🔁 [재상신 요청 DTO]", updatedDto);
+      console.log("🔁 [재상신 요청 DTO]", updatedDto, fileList);
 
-      await resubmitDocument(detail.id, updatedDto);
+      await resubmitDocument(detail.id, updatedDto, fileList);
+
       message.success("문서가 재상신되었습니다 ✅");
       navigate("/approvals");
     } catch (err) {
@@ -147,8 +160,50 @@ const Resubmit = () => {
             />
           </Form.Item>
 
-          <Form.Item label="첨부파일">
-            <Upload multiple beforeUpload={() => false}>
+          {/* ✅ 기존 첨부파일 목록 출력 */}
+          {(existingFiles && existingFiles.length > 0) && (
+            <>
+              <Divider />
+              <Title level={5}>기존 첨부파일</Title>
+              <List
+                bordered
+                dataSource={existingFiles}
+                renderItem={(file) => (
+                  <List.Item
+                    actions={[
+                      <Popconfirm
+                        title="삭제하시겠습니까?"
+                        onConfirm={() => handleRemoveExisting(file.id)}
+                        okText="삭제"
+                        cancelText="취소"
+                      >
+                        <Button
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          danger
+                          type="text"
+                        >
+                          삭제
+                        </Button>
+                      </Popconfirm>,
+                    ]}
+                  >
+                    {file.originalName}
+                  </List.Item>
+                )}
+              />
+            </>
+          )}
+
+          <Divider />
+
+          <Form.Item label="새 첨부파일 추가">
+            <Upload
+              multiple
+              fileList={fileList}
+              onChange={({ fileList }) => setFileList(fileList)}
+              beforeUpload={() => false}
+            >
               <Button icon={<UploadOutlined />}>파일 선택</Button>
             </Upload>
           </Form.Item>

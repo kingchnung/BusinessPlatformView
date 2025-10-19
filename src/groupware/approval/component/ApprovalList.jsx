@@ -82,7 +82,7 @@ const ApprovalList = ({ refreshKey = 0 }) => {
     setLoading(true);
     try {
       await deleteDocument(deleteModal.docId, deleteModal.reason);
-      message.success("문서가 논리적으로 삭제되었습니다.");
+      message.success("문서가 삭제되었습니다.");
       setDeleteModal({ open: false, docId: null, reason: "" });
       loadApprovals(pagination.current, pagination.pageSize);
     } catch (err) {

@@ -2,29 +2,26 @@ import React, { useEffect } from "react";
 import { Form, Input, Select, Divider } from "antd";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { useFormInitializer } from "../../hooks/useFormInitializer";
 
 const { TextArea } = Input;
 
 const RequestForm = ({ value = {}, onChange, departmentOptions = [] }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  useFormInitializer(currentUser, value, onChange);
+
+  /** ✅ 상위 상태 업데이트 헬퍼 */
   const update = (key, val) => {
     const newValue = { ...value, [key]: val };
     onChange?.(newValue);
   };
 
-  // ✅ 기본값 세팅
-  useEffect(() => {
-    if (currentUser) {
-      update("drafterName", currentUser.empName);
-      update("drafterDept", currentUser.deptName);
-      update("createdDate", dayjs());
-    }
-  }, [currentUser]);
-
   return (
     <>
-      {/* 기본 정보 */}
+      {/* ===========================
+          기본 정보
+      ============================ */}
       <Form.Item label="작성자">
         <Input value={value.drafterName || ""} readOnly />
       </Form.Item>
@@ -34,12 +31,21 @@ const RequestForm = ({ value = {}, onChange, departmentOptions = [] }) => {
       </Form.Item>
 
       <Form.Item label="작성일">
-        <Input value={dayjs().format("YYYY-MM-DD")} readOnly />
+        <Input
+          value={
+            value.createdDate
+              ? dayjs(value.createdDate).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD")
+          }
+          readOnly
+        />
       </Form.Item>
 
       <Divider />
 
-      {/* 기안 목적 */}
+      {/* ===========================
+          기안 목적
+      ============================ */}
       <Form.Item
         label="기안 목적"
         required
@@ -52,7 +58,9 @@ const RequestForm = ({ value = {}, onChange, departmentOptions = [] }) => {
         />
       </Form.Item>
 
-      {/* 상세 내용 */}
+      {/* ===========================
+          상세 내용
+      ============================ */}
       <Form.Item
         label="상세 내용"
         required
@@ -60,19 +68,21 @@ const RequestForm = ({ value = {}, onChange, departmentOptions = [] }) => {
       >
         <TextArea
           rows={5}
-          placeholder="예: 
+          placeholder={`예:
 - 추진 배경: 부서 간 협력 강화를 위한 워크숍 필요
 - 일정: 2025년 11월 3일 ~ 11월 4일
 - 장소: 양평 라비에벨 리조트
 - 참여 인원: 40명 내외
 - 예상비용: 약 300만원
-- 요청사항: 총무팀 경비 협조 및 일정 승인 요청"
+- 요청사항: 총무팀 경비 협조 및 일정 승인 요청`}
           value={value.details || ""}
           onChange={(e) => update("details", e.target.value)}
         />
       </Form.Item>
 
-      {/* 기대효과 */}
+      {/* ===========================
+          기대효과
+      ============================ */}
       <Form.Item
         label="기대효과"
         tooltip="이 기안이 승인되면 얻을 효과를 기술하세요."
@@ -85,7 +95,9 @@ const RequestForm = ({ value = {}, onChange, departmentOptions = [] }) => {
         />
       </Form.Item>
 
-      {/* 관련 부서 */}
+      {/* ===========================
+          관련 부서
+      ============================ */}
       <Form.Item label="관련 부서 (선택)">
         <Select
           mode="multiple"
