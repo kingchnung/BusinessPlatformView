@@ -74,7 +74,6 @@ export const removeClient = async (clientNo) => {
  */
 export const removeClients = async (clientNos) => {
   try {
-  // DELETE 요청의 body에 데이터를 보내려면 data 속성을 사용해야 합니다.
   const response = await axiosInstance.delete(`/sales/client/list`,
      { data: clientNos });
   return response.data;

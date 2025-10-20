@@ -4,6 +4,9 @@ import approvalReducer from "./groupware/approval/slice/approvalSlice";
 import authReducer from "./slice/authSlice";
 import hrReducer from "./hr/employee/slice/hrSlice";
 import departmentReducer from "./hr/department/slice/departmentSlice";
+import clientReducer from "./sales/slice/clientSlice";
+import salesTargetReducer from "./sales/slice/salesTargetSlice";
+import orderReducer from "./sales/slice/orderSlice";
 
 const store = configureStore({
     reducer : {
@@ -11,7 +14,9 @@ const store = configureStore({
         approval : approvalReducer,
         hr:hrReducer,
         department:departmentReducer,
-        
+        client: clientReducer,
+        salesTarget: salesTargetReducer,
+        order: orderReducer,        
     }
 });
 
