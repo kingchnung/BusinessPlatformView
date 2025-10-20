@@ -19,6 +19,7 @@ import MainLayout from "../layouts/MainLayout";
 
 
 
+
 const Loading = <div>Loading...</div>;
 const Main = lazy(() => import("../pages/MainPage"));
 const Login = lazy(() => import("../pages/LoginPage"));
@@ -60,6 +61,7 @@ const root = createBrowserRouter([
         element : <AdminRouter />,
         children: adminRoutes,     
       },
+
     ],
   },
   {
@@ -67,6 +69,7 @@ const root = createBrowserRouter([
     path: "/login",
     element: <Suspense fallback={Loading}><Login /></Suspense>,
   },
+  
 
 ]);
 

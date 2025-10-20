@@ -4,6 +4,11 @@ const Loading = <div>Loading...</div>;
 
 // 앞으로 만들 부서 관리 페이지
 const DepartmentAdminPage = lazy(() => import("../pages/DepartmentAdminPage"));
+const GradeAdminPage = lazy(() => import("../pages/GradeAdminPage"));
+const PositionAdminPage = lazy(() => import("../pages/PositionAdminPage"));
+const PermissionAdminPage = lazy(()=> import("../pages/PermissionAdminPage"));
+const RoleAdminPage = lazy(()=>import("../pages/RoleAdminPage"));
+const UserAccountAdmin = lazy(()=>import("../pages/UserAccountAdminPage"));
 
 const adminRoutes = [
   {
@@ -17,9 +22,28 @@ const adminRoutes = [
     element: <Suspense fallback={Loading}><DepartmentAdminPage /></Suspense>,
   },
   {
-    path : "positions",
-    element:<Suspense fallback={Loading}><baseInfoPositionPage /></Suspense>
+    // ✅ 직급 관리
+    path: "baseinfo/grades",
+    element: <Suspense fallback={Loading}><GradeAdminPage /></Suspense>,
+  },
+  {
+    // ✅ 직위 관리
+    path: "baseinfo/positions",
+    element: <Suspense fallback={Loading}><PositionAdminPage /></Suspense>,
+  },
+  {
+    path: "system/permissions",
+    element: <Suspense fallback={Loading}><PermissionAdminPage /></Suspense>,
+  },
+  {
+    path: "system/roles",
+    element: <Suspense fallback={Loading}><RoleAdminPage /></Suspense>,
+  },
+  {
+    path : "system/accounts",
+    element : <Suspense fallback={Loading}><UserAccountAdmin /></Suspense>
   }
+
 ];
 
 export default adminRoutes;

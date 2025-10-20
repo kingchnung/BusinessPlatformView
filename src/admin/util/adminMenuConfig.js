@@ -26,14 +26,14 @@ export const adminMenuConfig = [
     role: "ROLE_ADMIN",
     children: [
       {
-        key: "ranks",
+        key: "/admin/baseinfo/grades",
         label: "직급 관리",
-        path: "", // 미정
+        path: "/admin/baseinfo/grades", // 미정
       },
       {
-        key: "positions",
+        key: "/admin/baseinfo/positions",
         label: "직위 관리",
-        path: "", // 미정
+        path: "/admin/baseinfo/positions", // 미정
       },
     ],
   },
@@ -47,17 +47,30 @@ export const adminMenuConfig = [
     role: "ROLE_ADMIN",
     children: [
       {
-        key: "roles",
+        key: "/admin/system/roles",
         label: "역할 관리",
-        path: "", // 미정
-
+        path: "/admin/system/roles",
+        role: "ROLE_ADMIN",
       },
       {
-        key: "permissions",
+        key: "/admin/system/permissions",
         label: "권한 관리",
-        path: "", // 미정
-
+        path: "/admin/system/permissions",
+        role: "ROLE_ADMIN",
       },
     ],
   },
+  {
+    key : "account",
+    label : "계정 관리",
+    role : "ROLE_ADMIN",
+    children:[
+      {
+        key : "/admin/system/accounts",
+        label : "계정 관리",
+        path : "/admin/system/accounts",
+        role: "ROLE_ADMIN",
+      },
+    ]
+  }
 ];
