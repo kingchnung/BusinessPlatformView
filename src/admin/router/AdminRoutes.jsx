@@ -9,6 +9,9 @@ const PositionAdminPage = lazy(() => import("../pages/PositionAdminPage"));
 const PermissionAdminPage = lazy(()=> import("../pages/PermissionAdminPage"));
 const RoleAdminPage = lazy(()=>import("../pages/RoleAdminPage"));
 const UserAccountAdmin = lazy(()=>import("../pages/UserAccountAdminPage"));
+const ApprovalAdmin = lazy(() => import("../pages/ApprovalAdminPage"));
+const ApprovalPolicy = lazy(() => import("../pages/ApprovalPolicyPage"));
+
 
 const adminRoutes = [
   {
@@ -42,7 +45,15 @@ const adminRoutes = [
   {
     path : "system/accounts",
     element : <Suspense fallback={Loading}><UserAccountAdmin /></Suspense>
-  }
+  },
+  {
+    path : "approval/list",
+    element : <Suspense fallback={Loading}><ApprovalAdmin /></Suspense>
+  },
+  {
+    path : "approval/policy",
+    element : <Suspense fallback={Loading}><ApprovalPolicy /></Suspense>
+  },
 
 ];
 

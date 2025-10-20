@@ -14,9 +14,7 @@ import { handleApiError } from "../../util/apiErrorUtil";
  */
 export const getApprovalList = async (page = 1, size = 10) => {
   try {
-    const response = await axiosInstance.get("/approvals", {
-      params: { page, size },
-    });
+    const response = await axiosInstance.get(`/approvals?page=${page}&size=${size}`);
     console.log("📄 결재문서 목록:", response.data);
     return response.data;
   } catch (error) {
@@ -248,4 +246,31 @@ export const deleteDocument = async (docId, reason) => {
     params: { reason },
   });
   return res.data;
+};
+
+export const forceApproveDocument = async (docId) => {
+  const res = await axiosInstance.put(`/approvals/admin/${docId}/force-approve`);
+  return res.data;
+};
+
+export const forceRejectDocument = async (docId, reason) => {
+  const res = await axiosInstance.put(`/approvals/admin/${docId}/force-reject`, null, {
+    params: { reason },
+  });
+  return res.data;
+};
+
+/**
+ * ✅ 관리자용 문서 조회 (검색 포함)
+ */
+export const getAdminApprovalList = async (page = 1, size = 10, keyword = "") => {
+  try {
+    const response = await axiosInstance.get("/approvals/admin/all", {
+      params: { page, size, keyword },
+    });
+    return response.data;
+  } catch (error) {
+    message.error("관리자 문서 목록 조회 실패");
+    handleApiError(error);
+  }
 };
