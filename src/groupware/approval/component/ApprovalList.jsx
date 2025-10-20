@@ -134,8 +134,8 @@ const ApprovalList = ({ refreshKey = 0 }) => {
     },
     {
       title: "작성자",
-      dataIndex: "authorName",
-      key: "authorName",
+      dataIndex: "username",
+      key: "username",
       align: "center",
     },
     {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Card, message, Space, Button, Tag, Input, Select, Row, Col } from "antd";
-import { getAdminApprovalList, getApprovalList } from "../../api/groupware/approvalApi";
+import { forceApprove, forceReject, getAdminApprovalList, getApprovalList } from "../../api/groupware/approvalApi";
 import { useNavigate } from "react-router-dom";
 import { SearchOutlined, CheckOutlined, StopOutlined, ReloadOutlined } from "@ant-design/icons";
 
@@ -21,15 +21,10 @@ const ApprovalAdminPage = () => {
     const navigate = useNavigate();
 
     /** ✅ 문서 목록 로드 */
-    const loadApprovals = async (page = 1, size = 10) => {
+    const loadApprovals = async (page = 1, size = 10, keyword = searchText) => {
         try {
             setLoading(true);
-            const keywordParam = searchText ? `&keyword=${encodeURIComponent(searchText)}` : "";
-            const statusParam =
-                statusFilter !== "ALL" ? `&status=${encodeURIComponent(statusFilter)}` : "";
-
-            const res = await getAdminApprovalList(page, size, keywordParam + statusParam);
-
+            const res = await getApprovalList(page, size, keyword);
             if (res && res.dtoList) {
                 setApprovals(res.dtoList);
                 setPagination({
@@ -51,15 +46,30 @@ const ApprovalAdminPage = () => {
         loadApprovals(1, 10);
     }, []);
 
-    /** ✅ 강제 승인/반려 */
+    /** ✅ 강제 승인 */
     const handleForceApprove = async (docId) => {
-        message.success(`문서(${docId}) 강제 승인 완료 (시연용)`);
-        // ✅ 2단계에서 실제 /approve API 연동 예정
+        try {
+            await forceApprove(docId, "관리자 강제 승인 처리");
+            message.success(`문서(${docId}) 강제 승인 완료`);
+            loadApprovals(pagination.current, pagination.pageSize);
+        } catch (err) {
+            console.error("강제 승인 실패:", err);
+            message.error("강제 승인 중 오류 발생");
+        }
     };
 
+    /** ✅ 강제 반려 */
     const handleForceReject = async (docId) => {
-        message.warning(`문서(${docId}) 강제 반려 완료 (시연용)`);
-        // ✅ 2단계에서 실제 /reject API 연동 예정
+        try {
+            const reason = prompt("반려 사유를 입력하세요."); // ✅ 간단한 입력 예시
+            if (!reason) return;
+            await forceReject(docId, reason);
+            message.warning(`문서(${docId}) 강제 반려 완료`);
+            loadApprovals(pagination.current, pagination.pageSize);
+        } catch (err) {
+            console.error("강제 반려 실패:", err);
+            message.error("강제 반려 중 오류 발생");
+        }
     };
 
     const columns = [
@@ -78,7 +88,7 @@ const ApprovalAdminPage = () => {
             ),
         },
         { title: "부서", dataIndex: "departmentName", align: "center" },
-        { title: "작성자", dataIndex: "authorName", align: "center" },
+        { title: "작성자", dataIndex: "username", align: "center" },
         {
             title: "상태",
             dataIndex: "status",
@@ -158,8 +168,11 @@ const ApprovalAdminPage = () => {
                         placeholder="문서 제목 또는 작성자 검색"
                         allowClear
                         enterButton={<SearchOutlined />}
-                        onSearch={() => loadApprovals(1, pagination.pageSize)}
-                        onChange={(e) => setSearchText(e.target.value)}
+                        onSearch={(value) => {
+                            setSearchText(value);
+                            loadApprovals(1, pagination.pageSize, value); // ✅ 검색어 전달
+                        }}
+                        style={{ width: 300 }}
                     />
                 </Col>
             </Row>

@@ -12,12 +12,15 @@ import { handleApiError } from "../../util/apiErrorUtil";
 /**
  * 1️⃣ 결재문서 리스트 조회
  */
-export const getApprovalList = async (page = 1, size = 10) => {
+export const getApprovalList = async (page = 1, size = 10, keyword = "") => {
   try {
-    const response = await axiosInstance.get(`/approvals?page=${page}&size=${size}`);
+    const response = await axiosInstance.get("/approvals", {
+      params: { page, size, keyword },
+    });
     console.log("📄 결재문서 목록:", response.data);
     return response.data;
   } catch (error) {
+    console.error("❌ 결재문서 목록 조회 실패:", error);
     message.error("결재문서 목록 조회 실패");
     handleApiError(error);
   }
@@ -145,7 +148,7 @@ export const uploadFile = async (file, docId = null) => {
     // 문서ID가 있으면 함께 전송
     if (docId) formData.append("docId", docId);
 
-    const response = await axiosInstance.post("/attachments", formData, {
+    const response = await axiosInstance.post("/approvals/attachments", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -248,18 +251,6 @@ export const deleteDocument = async (docId, reason) => {
   return res.data;
 };
 
-export const forceApproveDocument = async (docId) => {
-  const res = await axiosInstance.put(`/approvals/admin/${docId}/force-approve`);
-  return res.data;
-};
-
-export const forceRejectDocument = async (docId, reason) => {
-  const res = await axiosInstance.put(`/approvals/admin/${docId}/force-reject`, null, {
-    params: { reason },
-  });
-  return res.data;
-};
-
 /**
  * ✅ 관리자용 문서 조회 (검색 포함)
  */
@@ -274,3 +265,13 @@ export const getAdminApprovalList = async (page = 1, size = 10, keyword = "") =>
     handleApiError(error);
   }
 };
+
+export const forceApprove = (docId, reason) =>
+  axiosInstance.put(`/approvals/admin/${docId}/force-approve`, null, {
+    params: { reason },
+  });
+
+export const forceReject = (docId, reason) =>
+  axiosInstance.put(`/approvals/admin/${docId}/force-reject`, null, {
+    params: { reason },
+  });
