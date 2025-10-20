@@ -71,6 +71,17 @@ export const hrMenuConfig = [
    
     ],
   },
+  {
+    key: "account",
+    label : "계정 관리",
+    children : [
+      {
+        key:"account",
+        label:"비밀번호 변경",
+        path: "/hr/account/pwedit"
+      },
+    ]
+  },
 
   
 ];

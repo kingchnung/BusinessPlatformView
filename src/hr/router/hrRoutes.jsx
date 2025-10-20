@@ -16,6 +16,8 @@ const Dashboard = lazy(()=>import("../department/pages/DepartmentDashboardPage")
 const DepartmentDetail = lazy(()=>import("../department/pages/DepartmentDetailPage"));
 const DepartmentAssign = lazy(()=>import("../department/pages/DepartmentAssignPage"));
 const DepartmentPromotion = lazy(()=>import("../department/pages/DepartmentPromosionPage"));
+const AccountPwEdit = lazy(()=>import("../employee/pages/EmployeePWEditPage"));
+
 
 // hr 기능과 관련된 라우트 배열 정의
 
@@ -69,6 +71,10 @@ const hrRoutes = [
     path : "department/promotion",
     element : <Suspense fallback={Loading}><DepartmentPromotion /></Suspense>
   },
+  {
+    path : "account/pwedit",
+    element : <Suspense fallback={Loading}><AccountPwEdit /></Suspense>
+  }
 
 ];
 

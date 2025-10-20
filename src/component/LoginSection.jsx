@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import {  Button,  Form,  Input,  Modal,  message,  Space,  Popconfirm,
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  message,
+  Space,
+  Popconfirm,
+  Card,
 } from "antd";
 import {
   LoginOutlined,
@@ -10,11 +18,14 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
 import { loginUser } from "../api/login/authApi";
+import axiosInstance from "../common/axiosInstance";
 
 const LoginSection = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isFindPwModalOpen, setIsFindPwModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
+  const [findPwForm] = Form.useForm();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -25,7 +36,9 @@ const LoginSection = () => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
     if (savedToken && savedUser) {
-      dispatch(loginSuccess({ token: savedToken, user: JSON.parse(savedUser) }));
+      dispatch(
+        loginSuccess({ token: savedToken, user: JSON.parse(savedUser) })
+      );
     }
   }, [dispatch]);
 
@@ -33,23 +46,18 @@ const LoginSection = () => {
   const handleLogin = async (values) => {
     setLoading(true);
     try {
-      // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
       const { user, token, refreshToken } = await loginUser(values);
-      
 
-      // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
-
       dispatch(loginSuccess({ user, token }));
 
       message.success(`${user.empName || user.username}님 환영합니다 👋`);
-      setIsModalOpen(false);
+      setIsLoginModalOpen(false);
       navigate("/main");
-
     } catch (err) {
-      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.", {err});
+      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.");
     } finally {
       setLoading(false);
     }
@@ -63,6 +71,24 @@ const LoginSection = () => {
     dispatch(logout());
     message.success("로그아웃 되었습니다 👋");
     navigate("/");
+  };
+
+  /* ✅ 비밀번호 재설정 */
+  const handleResetPassword = async (values) => {
+    setLoading(true);
+    try {
+      const res = await axiosInstance.post("/auth/reset-password", values);
+      message.success(
+        res.data.message ||
+          "임시 비밀번호가 이메일로 전송되었습니다. 로그인 화면으로 돌아갑니다."
+      );
+      setIsFindPwModalOpen(false);
+      setIsLoginModalOpen(true);
+    } catch (err) {
+      message.error("입력하신 정보와 일치하는 계정을 찾을 수 없습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,7 +125,7 @@ const LoginSection = () => {
           <Button
             type="primary"
             icon={<LoginOutlined />}
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setIsLoginModalOpen(true)}
             style={{
               background: "#1890ff",
               border: "none",
@@ -115,8 +141,8 @@ const LoginSection = () => {
       {/* ✅ 로그인 모달 */}
       <Modal
         title="BizMate 로그인"
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        open={isLoginModalOpen}
+        onCancel={() => setIsLoginModalOpen(false)}
         footer={null}
         centered
       >
@@ -146,7 +172,70 @@ const LoginSection = () => {
           >
             로그인
           </Button>
+
+          <div style={{ textAlign: "right", marginTop: "8px" }}>
+            <Button
+              type="link"
+              onClick={() => {
+                setIsLoginModalOpen(false);
+                setIsFindPwModalOpen(true);
+              }}
+            >
+              비밀번호를 잊으셨나요?
+            </Button>
+          </div>
         </Form>
+      </Modal>
+
+      {/* ✅ 비밀번호 찾기 모달 */}
+      <Modal
+        title="비밀번호 재설정"
+        open={isFindPwModalOpen}
+        onCancel={() => setIsFindPwModalOpen(false)}
+        footer={null}
+        centered
+      >
+        <Card bordered={false}>
+          <Form form={findPwForm} layout="vertical" onFinish={handleResetPassword}>
+            <Form.Item
+              label="아이디"
+              name="username"
+              rules={[{ required: true, message: "아이디를 입력하세요." }]}
+            >
+              <Input placeholder="아이디 입력" />
+            </Form.Item>
+
+            <Form.Item
+              label="등록된 이메일"
+              name="email"
+              rules={[{ required: true, message: "등록된 이메일을 입력하세요." }]}
+            >
+              <Input placeholder="example@company.com" />
+            </Form.Item>
+
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              block
+              style={{ marginTop: "8px" }}
+            >
+              임시 비밀번호 발급
+            </Button>
+
+            <div style={{ textAlign: "right", marginTop: "8px" }}>
+              <Button
+                type="link"
+                onClick={() => {
+                  setIsFindPwModalOpen(false);
+                  setIsLoginModalOpen(true);
+                }}
+              >
+                로그인 화면으로 돌아가기
+              </Button>
+            </div>
+          </Form>
+        </Card>
       </Modal>
     </>
   );
