@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import dayjs from "dayjs";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Form, Input, Button, Card, Space, message, DatePicker, Select, Upload,
 } from "antd";
@@ -7,92 +6,126 @@ import { UploadOutlined, PlusOutlined, MinusCircleOutlined, } from "@ant-design/
 import { draftApproval, submitDocument, uploadFile, resubmitDocument } from "../../../api/groupware/approvalApi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchEmployees } from "../../../api/hr/employeeApi";
+import { useSelector } from "react-redux";
+// ✅ 문서유형별 하위 폼 import
+import RequestForm from "./forms/RequestForm";
+import ProjectPlanForm from "./forms/ProjectPlanForm";
+import EstimateProposalForm from "./forms/EstimateProposalForm";
+import ExpenseForm from "./forms/ExpenseForm";
+import PurchaseForm from "./forms/PurchaseForm";
+import LeaveForm from "./forms/LeaveForm";
+import ResignationForm from "./forms/ResignationForm";
+import HRMoveForm from "./forms/HRMoveForm";
+import { fetchDepartments } from "../../../api/hr/departmentsAPI";
 
-const { TextArea } = Input;
+const { Option } = Select;
 
-const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false); // ✅ 업로드 중 여부 추가
+
+const formTypes = {
+  REQUEST: RequestForm,
+  PROJECT_PLAN: ProjectPlanForm,
+  ESTIMATE_PROPOSAL: EstimateProposalForm,
+  EXPENSE: ExpenseForm,
+  PURCHASE: PurchaseForm,
+  LEAVE: LeaveForm,
+  RESIGN: ResignationForm,
+  HR_MOVE: HRMoveForm,
+};
+
+const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [employeeOptions, setEmployeeOptions] = useState([]);
-  const [uploadedFiles, setUploadedFiles] = useState([]); // 서버 응답 DTO
-  const [fileList, setFileList] = useState([]); // UI 표시용
-  const [currentDocId, setCurrentDocId] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const token = localStorage.getItem("token");
-  const { docId } = useParams(); // ✅ /approvals/:docId/resubmit 에서 문서 ID 받음
+  const { docId } = useParams();
   const location = useLocation();
+  const { user: currentUser } = useSelector((state) => state.auth);
 
-  /* ===========================================================
-     ✅ 로그인 사용자 정보 로드
-     =========================================================== */
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setCurrentUser(parsed);
-        console.log("로그인 사용자 로드:", parsed);
-      } catch (e) {
-        console.error("User JSON 파싱 실패:", e);
-      }
-    }
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [fileList, setFileList] = useState([]);
+  const [currentDocId, setCurrentDocId] = useState(null);
+  const [docData, setDocData] = useState({});
+  const [docType, setDocType] = useState(null);
 
-  /* ===========================================================
-     ✅ 직원 목록 로드
-     =========================================================== */
+  const token = localStorage.getItem("token");
+
+   /* ===========================================================
+     ✅ 직원 목록 & 부서 목록 로드
+  =========================================================== */
   useEffect(() => {
-    const loadEmployees = async () => {
+    (async () => {
       try {
-        const data = await fetchEmployees();
-        const options = data.map((emp) => ({
-          label: `${emp.empName} (${emp.deptName})`,
-          value: emp.username,
-        }));
-        setEmployeeOptions(options);
+        const [emps, depts] = await Promise.all([
+          fetchEmployees(),
+          fetchDepartments(),
+        ]);
+        setEmployeeOptions(
+          emps.map((e) => ({
+            label: `${e.empName} (${e.deptName})`,
+            value: e.empNo,
+          }))
+        );
+        setDepartmentOptions(
+          depts.map((d) => ({ label: d.deptName, value: d.deptName }))
+        );
       } catch (err) {
-        console.error("직원 목록 조회 실패:", err);
-        message.error("직원 정보를 불러올 수 없습니다.");
+        console.error(err);
+        message.error("기초 데이터를 불러올 수 없습니다.");
       }
-    };
-    loadEmployees();
+    })();
   }, []);
 
+  /* ===========================================================
+     ✅ 재상신 데이터 로드
+  =========================================================== */
   useEffect(() => {
     if (isResubmit) {
-      const data = initialData || location.state; // ✅ props 또는 navigate state 사용
+      const data = initialData || location.state;
       if (data) {
-        console.log("📄 재상신 문서 로드:", data);
         form.setFieldsValue({
           title: data.title,
           docType: data.docType,
-          reason: data.docContent?.reason,
-          lastWorkDate: data.docContent?.lastWorkDate
-            ? dayjs(data.docContent.lastWorkDate)
-            : null,
-          approvalLine: data.approvalLine?.map((a) => ({
-            approverId: a.approverCode, // ✅ 사번으로 변환
-          })),
         });
+        setDocData(data.docContent || {});
         setUploadedFiles(data.attachments || []);
+        setFileList(
+          (data.attachments || []).map((f) => ({
+            uid: f.id,
+            name: f.originalName,
+            status: "done",
+            url: f.filePath,
+          }))
+        );
+        setDocType(data.docType);
       }
     }
   }, [isResubmit, initialData, location.state]);
-
 
   /* ===========================================================
      ✅ 파일 업로드 (문서ID 없어도 임시 업로드 가능)
      =========================================================== */
   const handleFileUpload = async ({ file, onSuccess, onError }) => {
-    console.log("📤 업로드 시작:", file.name);
+    console.log("📤 업로드 시작:", file.name, form);
     setUploading(true);
 
     try {
-      const uploaded = await uploadFile(file, currentDocId || null);
+      const uploaded = await uploadFile(file, docId || null);
 
       setUploadedFiles((prev) => [...prev, uploaded]);
+      setFileList((prev) => [
+        ...prev,
+        {
+          uid: uploaded.id,
+          name: uploaded.originalName,
+          status: "done",
+          url: uploaded.filePath,
+        },
+      ]);
+      form.setFieldsValue({
+        attachments: [...(form.getFieldValue("attachments") || []), uploaded],
+      });
 
       // ✅ 반드시 호출해야 Upload 내부 상태가 바뀜
       onSuccess("ok");
@@ -113,111 +146,107 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
     setFileList(fileList);
     console.log("📂 fileList 변경됨:", fileList);
   }
+
+  const handleFileRemove = (file) => {
+    setUploadedFiles((prev) =>
+      prev.filter((f) => f.originalName !== file.name)
+    );
+    form.setFieldsValue({
+      attachments: uploadedFiles.filter((f) => f.originalName !== file.name),
+    });
+  };
   /* ===========================================================
      ✅ 임시저장 / 상신 처리
      =========================================================== */
-  const handleAction = async (type) => {
-    console.log("▶️ handleAction 시작:", type);
-
-    if (uploading) {
-      message.warning("파일 업로드 중입니다. 잠시만 기다려주세요.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // ✅ 1️⃣ 유효성 검증
-      const values = await form.validateFields().catch((err) => {
-        console.error("❌ 필드 검증 실패:", err);
-        message.error("필수 항목을 모두 입력해주세요.");
-        throw err;
-      });
-
-      if (!currentUser) {
-        message.error("로그인 정보가 없습니다. 다시 로그인해주세요.");
+  const handleAction = useCallback(
+    async (actionType) => {
+      if (uploading) {
+        message.warning("파일 업로드 중입니다. 잠시만 기다려주세요.");
         return;
       }
 
-      // ✅ 2️⃣ 업로드된 파일 DTO 변환
-      const pureAttachments = uploadedFiles.map((file) => ({
-        id: file.id,
-        originalName: file.originalName,
-        storedName: file.storedName,
-        filePath: file.filePath,
-        fileSize: file.fileSize,
-        contentType: file.contentType,
-      }));
+      setLoading(true);
+      try {
+        const values = await form.validateFields();
+        if (!currentUser) throw new Error("로그인 정보 없음");
 
-      // ✅ 3️⃣ 서버 전송용 데이터 구성
-      const data = {
-        title: values.title,
-        docType: values.docType,
-        status: type === "draft" ? "DRAFT" : "SUBMITTED",
-        docContent: {
-          reason: values.reason,
-          lastWorkDate: values.lastWorkDate?.format("YYYY-MM-DD") || null,
-        },
-        approvalLine: (values.approvalLine || []).map((a, idx) => ({
-          order: idx + 1,
-          approverId: a.approverId,
-          decision: "PENDING",
-          comment: "",
-        })),
-        attachments: pureAttachments,
+        const attachments = uploadedFiles.map((f) => ({
+          id: f.id,
+          originalName: f.originalName,
+          storedName: f.storedName,
+          filePath: f.filePath,
+          fileSize: f.fileSize,
+          contentType: f.contentType,
+        }));
 
-        empId: currentUser.empId,
-        username : currentUser.username,
-        userId: currentUser.userId,
-        roleId: currentUser.roleId || null,
-        departmentId: currentUser.departmentId || null,
-        empName: currentUser.empName,
-      };
+        const viewerIds = form.getFieldValue("viewerIds") || [];
 
-      console.log("📄 문서 생성 데이터:", data);
-      console.log("📤 서버 요청 시작:", type, data);
+        const data = {
+          title: values.title,
+          docType: values.docType,
+          status:
+            actionType === "draft"
+              ? "DRAFT"
+              : actionType === "resubmit"
+              ? "RESUBMITTED"
+              : "SUBMITTED",
+          docContent: docData,
+          approvalLine: (values.approvalLine || []).map((a, i) => {
+            const selectedEmp = employeeOptions.find(
+              (emp) => emp.value === a.approverId
+            );
+            const approverName = selectedEmp
+              ? selectedEmp.label.split("(")[0].trim()
+              : "미등록 사용자";
+            return {
+              order: i + 1,
+              approverId: a.approverId,
+              approverName,
+              decision: "PENDING",
+              comment: "",
+            };
+          }),
+          attachments,
+          viewerIds,
+          empId: currentUser.empId,
+          username: currentUser.username,
+          userId: currentUser.userId,
+          empName: currentUser.empName,
+          deptName: currentUser.deptName,
+        };
 
-      // ✅ 4️⃣ 서버 요청
-      const res =
-        type === "draft"
-          ? await draftApproval(data)
-          : type === "resubmit"
-          ? await resubmitDocument(docId, data)
-          : await submitDocument(data);
+        console.log("📄 전송 데이터:", data);
 
-      // ✅ 5️⃣ 결과 처리
-      if (res?.id) {
-        setCurrentDocId(res.id);
-        message.success(
-          type === "draft"
-            ? `임시저장 완료: ${res.id}`
-            : `상신 완료: ${res.id}`
-        );
-      } else {
-        message.warning("서버 응답에 문서 ID가 없습니다.");
+        let response;
+        if (actionType === "draft") response = await draftApproval(data);
+        else if (actionType === "resubmit")
+          response = await resubmitDocument(docId, data);
+        else response = await submitDocument(data);
+
+        if (response?.id) {
+          message.success(
+            `${actionType === "draft" ? "임시저장" : "상신"} 완료되었습니다 ✅`
+          );
+          onSuccess();
+        } else {
+          message.warning("서버 응답에 문서 ID가 없습니다.");
+        }
+      } catch (err) {
+        console.error("❌ 문서 저장 실패:", err);
+        message.error("문서 저장 중 오류 발생 ❌");
+      } finally {
+        setLoading(false);
       }
-
-      // ✅ 6️⃣ 폼 초기화
-      form.resetFields();
-      setFileList([]);
-      setUploadedFiles([]);
-      setCurrentDocId(null);
-
-      // ✅ 7️⃣ 페이지 이동
-      navigate("/approvals");
-    } catch (err) {
-      console.error("❌ handleAction 오류:", err);
-      if (err.response) {
-        console.error("🔍 서버 응답:", err.response);
-      }
-    } finally {
-      setLoading(false);
-      setUploading(false);
-    }
-  };
+    },
+    [uploading, uploadedFiles, currentUser, docData, employeeOptions, form, navigate, docId]
+  );
 
   /* ===========================================================
      ✅ 렌더링
      =========================================================== */
+
+  const DynamicForm = formTypes[docType];
+
   return (
     <Card
       title={
@@ -242,10 +271,18 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
         >
           <Select
             placeholder="문서 유형을 선택하세요"
+            onChange={(value) => {
+              setDocType(value);
+              setDocData({});
+            }}
             options={[
-              { label: "품의서", value: "REQUEST" },
-              { label: "퇴직서", value: "RESIGN" },
-              { label: "보고서", value: "REPORT" },
+              { label: "기안서(품의서)", value: "REQUEST" },
+              { label: "프로젝트 기획안/품의서", value: "PROJECT_PLAN" },
+              { label: "견적서/제안서 발송 품의", value: "ESTIMATE_PROPOSAL" },
+              { label: "지출결의서", value: "EXPENSE" },
+              { label: "구매 품의서", value: "PURCHASE" },
+              { label: "휴가 신청서", value: "LEAVE" },
+              { label: "사직서", value: "RESIGN" },
               { label: "인사발령", value: "HR_MOVE" },
             ]}
           />
@@ -260,24 +297,26 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
           <Input placeholder="제목 입력" />
         </Form.Item>
 
-        {/* 사유 */}
-        <Form.Item
-          label="사유 / 내용"
-          name="reason"
-          rules={[{ required: true, message: "사유를 입력해주세요." }]}
-        >
-          <TextArea rows={4} placeholder="문서 내용을 입력하세요." />
-        </Form.Item>
-
-        {/* 예정일 */}
-        <Form.Item label="예정일 (선택)" name="lastWorkDate">
-          <DatePicker style={{ width: "100%" }} />
-        </Form.Item>
+        {/* ✅ 문서유형별 세부 입력폼 */}
+        {DynamicForm && (
+          <DynamicForm
+            value={docData}
+            onChange={(newValue) =>
+              setDocData((prev) => ({
+                ...prev,
+                ...newValue, // 🔥 기존 상태 유지 + 변경값 반영
+              }))
+            }
+            currentUser={currentUser}
+            employeeOptions={employeeOptions}
+            departmentOptions={departmentOptions}
+          />
+        )}
 
         {/* 결재자 라인 */}
         <Form.List
           name="approvalLine"
-          initialValue={[{ approverId: "" }]}
+          initialValue={[]}
           rules={[
             {
               validator: async (_, line) => {
@@ -307,7 +346,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null }) => {
                     {...restField}
                     name={[name, "approverId"]}
                     rules={[{ required: true, message: "결재자를 선택하세요." }]}
-                    style={{flex: 1, minWidth: '200px'}}
+                    style={{ flex: 1, minWidth: '200px' }}
                   >
                     <Select
                       placeholder="결재자 선택"

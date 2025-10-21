@@ -1,44 +1,7 @@
+import axios from "axios";
 import axiosInstance from "../../common/axiosInstance";
 import { message } from "antd";
-
-/**
- * 공통 에러 핸들러
- * - JWT 만료 → 로그아웃 및 로그인 페이지로 리다이렉트
- * - 404, 500, 네트워크 등 에러 공통 처리
- */
-const handleApiError = (error) => {
-  if (error.response) {
-    const { status } = error.response;
-
-    switch (status) {
-      case 401:
-      case 403:
-        message.error("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
-        break;
-
-      case 404:
-        message.warning("요청하신 데이터를 찾을 수 없습니다.");
-        break;
-
-      case 500:
-        message.error("서버 처리 중 오류가 발생했습니다.");
-        break;
-
-      default:
-        message.warning(`요청 실패 (상태코드: ${status})`);
-    }
-  } else if (error.request) {
-    message.error("서버 응답이 없습니다. 네트워크 연결을 확인하세요.");
-  } else {
-    message.error(`요청 오류: ${error.message}`);
-  }
-
-  console.error("❌ API Error:", error);
-  throw error; // 호출한 컴포넌트에서도 추가 처리 가능
-};
+import { handleApiError } from "../../util/apiErrorUtil";
 
 //
 // ==============================
@@ -49,14 +12,15 @@ const handleApiError = (error) => {
 /**
  * 1️⃣ 결재문서 리스트 조회
  */
-export const getApprovalList = async (page = 1, size = 10) => {
+export const getApprovalList = async (page = 1, size = 10, keyword = "") => {
   try {
     const response = await axiosInstance.get("/approvals", {
-      params: { page, size },
+      params: { page, size, keyword },
     });
     console.log("📄 결재문서 목록:", response.data);
     return response.data;
   } catch (error) {
+    console.error("❌ 결재문서 목록 조회 실패:", error);
     message.error("결재문서 목록 조회 실패");
     handleApiError(error);
   }
@@ -96,11 +60,34 @@ export const submitDocument = async (dto) => {
 };
 
 // ✅ 재상신 요청
-export const resubmitDocument = async (docId, dto) => {
+export const resubmitDocument = async (docId, dto, fileList = []) => {
 
-  const res = await axiosInstance.put(`/approvals/${docId}/resubmit`, dto);
+  try {
+    const formData = new FormData();
 
-  return res.data;
+    // ✅ JSON DTO를 문자열 Blob으로 감싸 전송
+    formData.append("data", new Blob([JSON.stringify(dto)], { type: "application/json" }));
+
+    // ✅ 새 첨부파일이 있으면 files[]로 추가
+    if (fileList && fileList.length > 0) {
+      fileList.forEach((file) => {
+        formData.append("files", file.originFileObj || file);
+      });
+    }
+
+    const response = await axiosInstance.put(
+      `/approvals/${docId}/resubmit`, 
+      formData
+    );
+
+    console.log("🔁 [재상신 성공]", response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error("❌ 재상신 실패:", error);
+    message.error("문서 재상신 중 오류가 발생했습니다.");
+    throw error;
+  }
 };
 
 
@@ -153,7 +140,7 @@ export const rejectDocument = async (docId, reason) => {
 /**
  * 7️⃣ 파일 업로드 (문서 ID 있을 수도 / 없을 수도 있음)
  */
-export const uploadFile = async (file, docId) => {
+export const uploadFile = async (file, docId = null) => {
   try {
     const formData = new FormData();
     formData.append("file", file);
@@ -161,7 +148,7 @@ export const uploadFile = async (file, docId) => {
     // 문서ID가 있으면 함께 전송
     if (docId) formData.append("docId", docId);
 
-    const response = await axiosInstance.post("/attachments", formData, {
+    const response = await axiosInstance.post("/approvals/attachments", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -180,10 +167,14 @@ export const uploadFile = async (file, docId) => {
 /**
  * 8️⃣ 파일 미리보기 (새 창)
  */
-export const previewFile = (id) => {
-  // const token = localStorage.getItem("token");
-  const url = `http://localhost:8080/api/upload/download/${id}?inline=true`;
-  window.open(url, "_blank");
+export const previewFileAxios = async (id) => {
+  const res = await axios.get(`http://localhost:8080/api/attachments/preview/${id}`, {
+    responseType: "blob", // ✅ 파일 스트림으로 받기
+  });
+
+  const blob = new Blob([res.data]);
+  const url = window.URL.createObjectURL(blob);
+  window.open(url); // 새 탭으로 미리보기
 };
 
 /**
@@ -191,7 +182,7 @@ export const previewFile = (id) => {
  */
 export const downloadFile = async (id) => {
   try {
-    const response = await axiosInstance.get(`/upload/download/${id}`, {
+    const response = await axiosInstance.get(`/attachments/download/${id}`, {
       responseType: "blob",
     });
     console.log("📥 파일 다운로드 성공:", response);
@@ -199,6 +190,44 @@ export const downloadFile = async (id) => {
   } catch (error) {
     message.error("파일 다운로드 실패");
     handleApiError(error);
+  }
+};
+
+export const previewPdf = async (docId) => {
+  try {
+    if (!docId) throw new Error("docId가 없습니다.");
+
+    const res = await axiosInstance.get(`/approvals/pdf/${docId}`, {
+      responseType: "blob",
+    });
+
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  } catch (error) {
+    console.error("❌ PDF 미리보기 실패:", error);
+    message.error("PDF 미리보기 중 오류가 발생했습니다.");
+    throw error;
+  }
+};
+
+export const downloadPdf = async (docId) => {
+  try {
+    if (!docId) throw new Error("docId가 없습니다.");
+
+    const res = await axiosInstance.get(`/approvals/pdf/${docId}?download=true`, {
+      responseType: "blob",
+    });
+
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${docId}.pdf`;
+    link.click();
+  } catch (error) {
+    console.error("❌ PDF 다운로드 실패:", error);
+    message.error("PDF 다운로드 중 오류가 발생했습니다.");
+    throw error;
   }
 };
 
@@ -213,3 +242,36 @@ export const getFileList = async (docId) => {
     throw error;
   }
 };
+
+// ✅ 논리 삭제 API
+export const deleteDocument = async (docId, reason) => {
+  const res = await axiosInstance.delete(`/approvals/${docId}`, {
+    params: { reason },
+  });
+  return res.data;
+};
+
+/**
+ * ✅ 관리자용 문서 조회 (검색 포함)
+ */
+export const getAdminApprovalList = async (page = 1, size = 10, keyword = "") => {
+  try {
+    const response = await axiosInstance.get("/approvals/admin/all", {
+      params: { page, size, keyword },
+    });
+    return response.data;
+  } catch (error) {
+    message.error("관리자 문서 목록 조회 실패");
+    handleApiError(error);
+  }
+};
+
+export const forceApprove = (docId, reason) =>
+  axiosInstance.put(`/approvals/admin/${docId}/force-approve`, null, {
+    params: { reason },
+  });
+
+export const forceReject = (docId, reason) =>
+  axiosInstance.put(`/approvals/admin/${docId}/force-reject`, null, {
+    params: { reason },
+  });

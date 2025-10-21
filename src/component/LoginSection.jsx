@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
+
   Button,
-  Form,
-  Input,
-  Modal,
-  message,
-  Space,
-  Popconfirm,
+ Form,
+ Input,
+ Modal,
+ message,
+ Space,
+ Popconfirm,
   Card,
 } from "antd";
 import {
@@ -19,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
 import { loginUser } from "../api/login/authApi";
 import axiosInstance from "../common/axiosInstance";
+import { jwtDecode } from "jwt-decode";
 
 const LoginSection = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -36,9 +38,19 @@ const LoginSection = () => {
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
+
     if (savedToken && savedUser) {
+      const parsedUser = JSON.parse(savedUser);
       dispatch(
-        loginSuccess({ token: savedToken, user: JSON.parse(savedUser) })
+        loginSuccess({
+          token: savedToken,
+          user: {
+            ...parsedUser,
+            deptName: parsedUser.deptName || "소속 부서 미지정",
+            deptCode: parsedUser.deptCode || "-",
+            ...parsedUser,
+          },
+        })
       );
     }
   }, [dispatch]);
@@ -51,12 +63,29 @@ const LoginSection = () => {
     try {
       const { user, token, refreshToken } = await loginUser(values);
 
+      const decoded = jwtDecode(token);
+      console.log("Decoded Token : ", decoded);
+
+      console.log("✅ [Login Response user data]:", JSON.stringify(user, null, 2));
+
+      const userWithDept = {
+        ...user,
+        deptName: decoded.deptName || "소속 부서 미지정",
+        deptCode: decoded.deptCode || "-",
+        empName: decoded.empName || user.empName,
+        email: decoded.email || user.email,
+        username: decoded.username,
+      };
+
+      
+
+      // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      dispatch(loginSuccess({ user, token }));
+      localStorage.setItem("user", JSON.stringify(userWithDept));
+      dispatch(loginSuccess({ user: userWithDept, token }));
 
-      message.success(`${user.empName || user.username}님 환영합니다 👋`);
+      message.success(`${userWithDept.deptName} ${userWithDept.empName}님 환영합니다 👋`);
       setIsLoginModalOpen(false);
       navigate("/main");
     } catch (err) {
@@ -125,7 +154,7 @@ const LoginSection = () => {
           <>
             <span style={{ color: "#fff", marginRight: 8 }}>
               <UserOutlined style={{ marginRight: 4 }} />
-              {user?.username} {user?.empName} 님 환영합니다 😊
+              {user?.deptName || "소속 부서 미지정"} {user.empName} 님 환영합니다 😊
             </span>
 
             <Popconfirm

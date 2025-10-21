@@ -24,7 +24,7 @@ const HeaderLayout = () => {
     { key: "Sales", label: "매출" },
     { key: "Project", label: "프로젝트" },
     { key: "approvals", label: "전자결재" },
-    { key: "communications", label: "사내게시판" },
+    { key: "boards", label: "사내게시판" },
   ];
   if (isAdmin){
     menuItems.push({ key:"admin", label:"관리"});

@@ -4,9 +4,9 @@ export const adminMenuConfig = [
   {
     key: "admin",
     label: "시스템 관리",
-    
+
     // ✅ 'ROLE_ADMIN'만 접근 가능하도록 role 속성 추가
-    role: "ROLE_ADMIN", 
+    role: "ROLE_ADMIN",
     children: [
       {
         key: "/admin/departments",
@@ -61,16 +61,80 @@ export const adminMenuConfig = [
     ],
   },
   {
-    key : "account",
-    label : "계정 관리",
-    role : "ROLE_ADMIN",
-    children:[
+    key: "account",
+    label: "계정 관리",
+    role: "ROLE_ADMIN",
+    children: [
       {
-        key : "/admin/system/accounts",
-        label : "계정 관리",
-        path : "/admin/system/accounts",
+        key: "/admin/system/accounts",
+        label: "계정 관리",
+        path: "/admin/system/accounts",
         role: "ROLE_ADMIN",
       },
     ]
-  }
+  },
+  // -------------------------
+  // ① 전자결재 관리
+  // -------------------------
+  {
+    key: "approvalAdmin",
+    label: "전자결재 관리",
+    role: "ROLE_ADMIN",
+    children: [
+      {
+        key: "/admin/approval/list",
+        label: "모든 문서 열람",
+        path: "/admin/approval/list",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/approval/policy",
+        label: "결재선 정책 관리",
+        path: "/admin/approval/policy",
+        role: "ROLE_ADMIN",
+      },
+    ],
+  },
+
+  // -------------------------
+  // ② 게시판 관리
+  // -------------------------
+  {
+    key: "boardAdmin",
+    label: "게시판 관리",
+    role: "ROLE_ADMIN",
+    children: [
+      {
+        key: "/admin/boards/manage",
+        label: "게시판 생성/삭제",
+        path: "/admin/boards/manage",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/boards/reports",
+        label: "게시글 신고 관리",
+        path: "/admin/boards/reports",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/boards/pinned",
+        label: "공지사항 상단 고정",
+        path: "/admin/boards/pinned",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/boards/access",
+        label: "권한별 접근 설정",
+        path: "/admin/boards/access",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/boards/statistics",
+        label: "게시판 통계 조회",
+        path: "/admin/boards/statistics",
+        role: "ROLE_ADMIN",
+      },
+    ],
+  },
+
 ];

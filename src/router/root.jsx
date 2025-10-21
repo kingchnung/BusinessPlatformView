@@ -10,6 +10,8 @@ import ApprovalRouter from "../groupware/approval/router/ApprovalRouter";
 import hrRoutes from "../hr/router/HrRoutes";
 import HrRouter from "../hr/router/HrRouter";
 
+import BoardRouter from "../groupware/board/router/BoardRouter";
+import boardRoutes from "../groupware/board/router/BoardRoutes";
 // 참고: HR도 동일한 방식으로 분리할 수 있습니다. (HrLayout, hrRoutes)
 
 
@@ -42,6 +44,11 @@ const root = createBrowserRouter([
         path: "approvals",
         element: <ApprovalRouter />,
         children: ApprovalRoutes,
+      },
+      {
+        path: "/boards",
+        element: <BoardRouter />,
+        children: boardRoutes,
       },
       //----인사파트 모듈---
       {
