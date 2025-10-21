@@ -58,3 +58,14 @@ export const fetchUsers = async () => {
     handleApiError(error);
   }
 };
+
+export const fetchUserProfile = async (userId) => {
+  try {
+    const res = await axiosInstance.get(`/users/${userId}`);
+    console.log("✅ 사용자 프로필 응답:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("❌ 사용자 프로필 조회 실패:", error);
+    handleApiError(error);
+  }
+};
