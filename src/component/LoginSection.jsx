@@ -24,6 +24,7 @@ const LoginSection = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isFindPwModalOpen, setIsFindPwModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(""); // ✅ 추가
   const [form] = Form.useForm();
   const [findPwForm] = Form.useForm();
   const navigate = useNavigate();
@@ -45,6 +46,8 @@ const LoginSection = () => {
   /* ✅ 로그인 요청 */
   const handleLogin = async (values) => {
     setLoading(true);
+    setErrorMsg(""); // 초기화
+
     try {
       const { user, token, refreshToken } = await loginUser(values);
 
@@ -57,7 +60,31 @@ const LoginSection = () => {
       setIsLoginModalOpen(false);
       navigate("/main");
     } catch (err) {
-      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.");
+      console.error("로그인 실패:", err);
+
+      // ✅ 1️⃣ 서버 응답 확인
+      const error =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "로그인에 실패했습니다.";
+
+      // ✅ 2️⃣ 케이스별 메시지 처리
+      let displayMsg = "로그인에 실패했습니다.";
+
+      if (error.includes("비밀번호")) {
+        // 백엔드에서 "남은 시도" 안내 포함 시 그대로 표시
+        displayMsg = error.includes("남은 시도")
+          ? `❌ ${error}`
+          : "❌ 비밀번호가 일치하지 않습니다. 다시 확인해주세요.";
+      } else if (error.includes("사용자를 찾을 수 없습니다")) {
+        displayMsg = "❌ 아이디를 확인해주세요. 존재하지 않는 계정입니다.";
+      } else if (error.includes("잠금")) {
+        displayMsg = "🔒 계정이 잠겼습니다. 관리자에게 문의하세요.";
+      }
+
+      message.error(displayMsg);
+      setErrorMsg(displayMsg);
     } finally {
       setLoading(false);
     }
@@ -151,6 +178,7 @@ const LoginSection = () => {
             label="아이디"
             name="username"
             rules={[{ required: true, message: "아이디를 입력하세요." }]}
+            validateStatus={errorMsg.includes("사용자") ? "error" : ""}
           >
             <Input placeholder="아이디 입력" />
           </Form.Item>
@@ -159,6 +187,12 @@ const LoginSection = () => {
             label="비밀번호"
             name="password"
             rules={[{ required: true, message: "비밀번호를 입력하세요." }]}
+            validateStatus={errorMsg.includes("비밀번호") ? "error" : ""}
+            help={
+              errorMsg.includes("비밀번호") || errorMsg.includes("남은 시도")
+                ? errorMsg
+                : ""
+            }
           >
             <Input.Password placeholder="비밀번호 입력" />
           </Form.Item>
@@ -196,7 +230,11 @@ const LoginSection = () => {
         centered
       >
         <Card bordered={false}>
-          <Form form={findPwForm} layout="vertical" onFinish={handleResetPassword}>
+          <Form
+            form={findPwForm}
+            layout="vertical"
+            onFinish={handleResetPassword}
+          >
             <Form.Item
               label="아이디"
               name="username"
@@ -208,7 +246,9 @@ const LoginSection = () => {
             <Form.Item
               label="등록된 이메일"
               name="email"
-              rules={[{ required: true, message: "등록된 이메일을 입력하세요." }]}
+              rules={[
+                { required: true, message: "등록된 이메일을 입력하세요." },
+              ]}
             >
               <Input placeholder="example@company.com" />
             </Form.Item>
