@@ -1,13 +1,25 @@
-import React from "react";
+import React, {useMemo} from "react";
 import { Menu, Layout } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoginSection from "../component/LoginSection";
 
 const { Header } = Layout;
 
+const getTopMenuKey = (pathname) => {
+  if (pathname.startsWith('/hr')) return '/hr';
+  if (pathname.startsWith('/sales')) return '/sales';
+  if (pathname.startsWith('/approvals')) return '/approvals';
+  if (pathname.startsWith('/communications')) return '/communications';
+  if (pathname.startsWith('/project')) return '/project';
+  if (pathname === '/' || pathname === '/main') return '/';
+  return '/';
+};
+
 const HeaderLayout = () => {
+  const location = useLocation();
   const navigate = useNavigate();
 
+<<<<<<< HEAD
   // ✅ 1. localStorage에서 사용자 정보를 가져옵니다.
   let userRoles = [];
   try {
@@ -18,10 +30,14 @@ const HeaderLayout = () => {
   // ✅ 2. 사용자가 관리자 권한(ADMIN 또는 CEO)을 가지고 있는지 확인합니다.
   const isAdmin = userRoles.includes("ROLE_ADMIN") || userRoles.includes("ROLE_CEO");
 
+=======
+  const currentTopMenuKey = useMemo(() => getTopMenuKey(location.pathname), [location.pathname]);
+ 
+>>>>>>> origin/sales
   const menuItems = [
-    { key: "Main", label: "메인" },
+    { key: "main", label: "메인" },
     { key: "hr", label: "인사" },
-    { key: "Sales", label: "매출" },
+    { key: "sales", label: "영업" },
     { key: "Project", label: "프로젝트" },
     { key: "approvals", label: "전자결재" },
     { key: "boards", label: "사내게시판" },
@@ -60,7 +76,7 @@ const HeaderLayout = () => {
       <Menu
         theme="dark"
         mode="horizontal"
-        defaultSelectedKeys={["Main"]}
+        selectedKeys={[currentTopMenuKey]}
         items={menuItems}
         style={{
           flex: 1,
