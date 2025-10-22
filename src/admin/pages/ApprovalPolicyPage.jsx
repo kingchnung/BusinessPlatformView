@@ -16,8 +16,10 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import {
+  activatePolicy,
   createPolicy,
   deactivatePolicy,
+  deletePolicy,
   fetchDocumentTypes,
   fetchPolicies,
 } from "../../api/groupware/policyApi";
@@ -35,6 +37,7 @@ const ApprovalPolicyPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false); // ✅ 비활성화 모달
+  const [confirmMode, setConfirmMode] = useState("deactivate");
   const [selectedId, setSelectedId] = useState(null);    // ✅ 비활성화 대상 ID
   const [form] = Form.useForm();
   const [documentTypes, setDocumentTypes] = useState([]);
@@ -167,7 +170,7 @@ const ApprovalPolicyPage = () => {
     form.setFieldsValue({
       policyName: policy.policyName,
       docType: policy.docType,
-      approverRoles: policy.steps || [],
+      steps: policy.steps || [],
     });
     setModalOpen(true);
   };
@@ -193,30 +196,49 @@ const ApprovalPolicyPage = () => {
         })),
       };
 
-      await createPolicy(payload);
-      message.success("결재선 정책이 등록되었습니다.");
+      if (editingPolicy) {
+        // ✅ 수정모드면 updatePolicy 호출
+        await updatePolicy(editingPolicy.id, payload);
+        message.success("결재선 정책이 수정되었습니다.");
+      } else {
+        // ✅ 신규등록
+        await createPolicy(payload);
+        message.success("결재선 정책이 등록되었습니다.");
+      }
+
       setModalOpen(false);
-      loadPolicies();
-    } catch {
-      message.error("정책 등록 중 오류가 발생했습니다.");
-    }
-  };
-
-  /** ✅ 비활성화 버튼 클릭 */
-  const handleDeactivateClick = (id) => {
-    setSelectedId(id);
-    setConfirmOpen(true);
-  };
-
-  /** ✅ 실제 비활성화 실행 */
-  const handleDeactivateConfirm = async () => {
-    try {
-      await deactivatePolicy(selectedId);
-      message.success("정책이 비활성화되었습니다.");
       loadPolicies();
     } catch (err) {
       console.error(err);
-      message.error("비활성화 중 오류가 발생했습니다.");
+      message.error("정책 저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  /** ✅ 모달 열기 */
+  const openConfirmModal = (id, mode) => {
+    setSelectedId(id);
+    setConfirmMode(mode); // deactivate | activate | delete
+    setConfirmOpen(true);
+  };
+
+  /** ✅ 실제 실행 (비활성화 / 활성화 / 삭제) */
+  const handleConfirm = async () => {
+    try {
+      if (!selectedId) return;
+      if (confirmMode === "deactivate") {
+        await deactivatePolicy(selectedId);
+        message.warning("정책이 비활성화되었습니다.");
+      } else if (confirmMode === "activate") {
+        await activatePolicy(selectedId);
+        message.success("정책이 다시 활성화되었습니다.");
+      } else if (confirmMode === "delete") {
+        await deletePolicy(selectedId);
+        message.success("정책이 삭제되었습니다.");
+      }
+      loadPolicies();
+    } catch (err) {
+      console.error(err);
+      message.error("정책 처리 중 오류가 발생했습니다.");
     } finally {
       setConfirmOpen(false);
     }
@@ -276,21 +298,42 @@ const ApprovalPolicyPage = () => {
       align: "center",
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => openEditModal(record)}
-          >
-            수정
-          </Button>
-          <Button
-            icon={<DeleteOutlined />}
-            size="small"
-            danger
-            onClick={() => handleDeactivateClick(record.id)}
-          >
-            비활성화
-          </Button>
+          {record.active ? (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                onClick={() => openEditModal(record)}
+              >
+                수정
+              </Button>
+              <Button
+                icon={<DeleteOutlined />}
+                size="small"
+                danger
+                onClick={() => openConfirmModal(record.id, "deactivate")}
+              >
+                비활성화
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => openConfirmModal(record.id, "activate")}
+              >
+                활성화
+              </Button>
+              <Button
+                danger
+                size="small"
+                onClick={() => openConfirmModal(record.id, "delete")}
+              >
+                삭제
+              </Button>
+            </>
+          )}
         </Space>
       ),
     },
@@ -426,14 +469,38 @@ const ApprovalPolicyPage = () => {
       {/* ✅ 비활성화 확인 모달 */}
       <Modal
         open={confirmOpen}
-        title="정말 비활성화하시겠습니까?"
         onCancel={() => setConfirmOpen(false)}
-        onOk={handleDeactivateConfirm}
-        okText="비활성화"
+        onOk={handleConfirm}
+        okText={
+          confirmMode === "deactivate"
+            ? "비활성화"
+            : confirmMode === "activate"
+              ? "활성화"
+              : "삭제"
+        }
         cancelText="취소"
-        okType="danger"
+        okType={
+          confirmMode === "delete"
+            ? "danger"
+            : confirmMode === "deactivate"
+              ? "danger"
+              : "primary"
+        }
+        title={
+          confirmMode === "deactivate"
+            ? "정책 비활성화"
+            : confirmMode === "activate"
+              ? "정책 활성화"
+              : "정책 삭제"
+        }
       >
-        <p>비활성화된 정책은 다시 활성화해야 사용할 수 있습니다.</p>
+        <p>
+          {confirmMode === "deactivate"
+            ? "이 정책을 비활성화하면 문서 작성 시 자동 결재선으로 적용되지 않습니다."
+            : confirmMode === "activate"
+              ? "이 정책을 다시 활성화하시겠습니까?"
+              : "이 정책을 완전히 삭제하시겠습니까? 복구할 수 없습니다."}
+        </p>
       </Modal>
     </Card>
   );

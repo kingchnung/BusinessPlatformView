@@ -17,7 +17,7 @@ import LeaveForm from "./forms/LeaveForm";
 import ResignationForm from "./forms/ResignationForm";
 import HRMoveForm from "./forms/HRMoveForm";
 import { fetchDepartments } from "../../../api/hr/departmentsAPI";
-import { fetchDocumentTypes } from "../../../api/groupware/policyApi";
+import { fetchAutoApprovalLine, fetchDocumentTypes } from "../../../api/groupware/policyApi";
 
 const { Option } = Select;
 
@@ -50,6 +50,9 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
   const [documentTypes, setDocumentTypes] = useState([]);
   const [docData, setDocData] = useState({});
   const [docType, setDocType] = useState(null);
+  const [autoApprovalLine, setAutoApprovalLine] = useState([]);
+  const [manualMode, setManualMode] = useState(true);
+
 
   const token = localStorage.getItem("token");
 
@@ -221,21 +224,32 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
               ? "DRAFT"
               : "IN_PROGRESS",
           docContent: docData,
-          approvalLine: (values.approvalLine || []).map((a, i) => {
-            const selectedEmp = employeeOptions.find(
-              (emp) => emp.value === a.approverId
-            );
-            const approverName = selectedEmp
-              ? selectedEmp.label.split("(")[0].trim()
-              : "미등록 사용자";
-            return {
-              order: i + 1,
-              approverId: a.approverId,
-              approverName,
+
+          // ✅ 자동/수동 결재선 분기 처리 추가
+          approvalLine: manualMode
+            ? (values.approvalLine || []).map((a, i) => {
+              const selectedEmp = employeeOptions.find(
+                (emp) => emp.value === a.approverId
+              );
+              const approverName = selectedEmp
+                ? selectedEmp.label.split("(")[0].trim()
+                : "미등록 사용자";
+              return {
+                order: i + 1,
+                approverId: a.approverId,
+                approverName,
+                decision: "PENDING",
+                comment: "",
+              };
+            })
+            : (autoApprovalLine || []).map((a) => ({
+              order: a.stepOrder,
+              approverId: a.empId || "-",     // 정책 기반이라 empId가 존재할 수도 있음
+              approverName: a.empName,
               decision: "PENDING",
               comment: "",
-            };
-          }),
+            })),
+
           attachments,
           viewerIds,
           empId: currentUser.empId,
@@ -301,9 +315,37 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
         >
           <Select
             placeholder="문서 유형을 선택하세요"
-            onChange={(value) => {
+            onChange={async (value) => {
               setDocType(value);
               setDocData({});
+
+              try {
+                const deptCode = currentUser.departmentCode;
+                const res = await fetchAutoApprovalLine(value, deptCode);
+                console.log("📡 자동결재선 응답:", res);
+
+                // ✅ 응답 구조 확인 (배열인지, data.data인지)
+                const steps =
+                  Array.isArray(res.data) ? res.data :
+                    Array.isArray(res.data?.data) ? res.data.data :
+                      [];
+
+                if (steps.length > 0) {
+                  setAutoApprovalLine(steps);
+                  setManualMode(false); // 🔥 자동모드 활성화
+                  form.setFieldsValue({ approvalLine: steps });
+                  message.success("결재정책이 적용되어 자동으로 결재선이 설정되었습니다.");
+                } else {
+                  setAutoApprovalLine([]);
+                  setManualMode(true); // 🔥 수동모드 활성화
+                  form.setFieldsValue({ approvalLine: [] });
+                  message.info("결재정책이 없어 수동 결재선 설정이 필요합니다.");
+                }
+              } catch (err) {
+                console.error("❌ 자동 결재선 조회 실패:", err);
+                setManualMode(true);
+                message.error("결재정책을 불러오지 못했습니다.");
+              }
             }}
             options={documentTypes} // ✅ 자동 로드된 Enum 기반 옵션
             loading={documentTypes.length === 0}
@@ -336,73 +378,119 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
         )}
 
         {/* 결재자 라인 */}
-        <Form.List
-          name="approvalLine"
-          initialValue={[]}
-          rules={[
-            {
-              validator: async (_, line) => {
-                if (!line || line.length < 1) {
-                  return Promise.reject(
-                    new Error("결재자를 최소 1명 이상 추가하세요.")
-                  );
-                }
-              },
-            },
-          ]}
-        >
-          {(fields, { add, remove }) => (
-            <>
-              <label style={{ fontWeight: "bold" }}>결재자 라인</label>
-              {fields.map(({ key, name, ...restField }) => (
-                <Space
-                  key={key}
-                  style={{
-                    display: "flex",
-                    marginBottom: 8,
-                    justifyContent: "space-between",
-                  }}
-                  align="baseline"
-                >
-                  <Form.Item
-                    {...restField}
-                    name={[name, "approverId"]}
-                    rules={[{ required: true, message: "결재자를 선택하세요." }]}
-                    style={{ flex: 1, minWidth: '200px' }}
-                  >
-                    <Select
-                      placeholder="결재자 선택"
-                      options={employeeOptions}
-                      showSearch
-                      filterOption={(input, option) =>
-                        option?.label
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                    />
-                  </Form.Item>
-                  <Button
-                    type="text"
-                    danger
-                    icon={<MinusCircleOutlined />}
-                    onClick={() => remove(name)}
-                  />
-                </Space>
-              ))}
-              <Form.Item>
-                <Button
-                  type="dashed"
-                  onClick={() => add()}
-                  block
-                  icon={<PlusOutlined />}
-                >
-                  결재자 추가
-                </Button>
-              </Form.Item>
-            </>
-          )}
-        </Form.List>
+        {!manualMode ? (
+          <>
+            <label style={{ fontWeight: "bold" }}>결재선 (정책 자동 적용)</label>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: "#1677ff" }}>
+                이 문서유형은 회사 결재정책에 따라 자동으로 설정됩니다.
+              </span>
+            </div>
 
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                border: "1px solid #d9d9d9",
+              }}
+            >
+              <thead style={{ background: "#fafafa" }}>
+                <tr>
+                  <th style={{ border: "1px solid #ddd", padding: 6 }}>순서</th>
+                  <th style={{ border: "1px solid #ddd", padding: 6 }}>부서</th>
+                  <th style={{ border: "1px solid #ddd", padding: 6 }}>직위</th>
+                  <th style={{ border: "1px solid #ddd", padding: 6 }}>결재자</th>
+                </tr>
+              </thead>
+              <tbody>
+                {autoApprovalLine.map((s, idx) => (
+                  <tr key={idx}>
+                    <td style={{ border: "1px solid #ddd", textAlign: "center" }}>
+                      {s.stepOrder}
+                    </td>
+                    <td style={{ border: "1px solid #ddd", textAlign: "center" }}>
+                      {s.deptName}
+                    </td>
+                    <td style={{ border: "1px solid #ddd", textAlign: "center" }}>
+                      {s.positionName}
+                    </td>
+                    <td style={{ border: "1px solid #ddd", textAlign: "center" }}>
+                      {s.empName}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : (
+          // 🔽 기존 수동 결재선 Form.List 유지
+          <Form.List
+            name="approvalLine"
+            initialValue={[]}
+            rules={[
+              {
+                validator: async (_, line) => {
+                  if (!line || line.length < 1) {
+                    return Promise.reject(
+                      new Error("결재자를 최소 1명 이상 추가하세요.")
+                    );
+                  }
+                },
+              },
+            ]}
+          >
+            {(fields, { add, remove }) => (
+              <>
+                <label style={{ fontWeight: "bold" }}>결재자 라인 (수동 설정)</label>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space
+                    key={key}
+                    style={{
+                      display: "flex",
+                      marginBottom: 8,
+                      justifyContent: "space-between",
+                    }}
+                    align="baseline"
+                  >
+                    <Form.Item
+                      {...restField}
+                      name={[name, "approverId"]}
+                      rules={[{ required: true, message: "결재자를 선택하세요." }]}
+                      style={{ flex: 1, minWidth: "200px" }}
+                    >
+                      <Select
+                        placeholder="결재자 선택"
+                        options={employeeOptions}
+                        showSearch
+                        filterOption={(input, option) =>
+                          option?.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                      />
+                    </Form.Item>
+                    <Button
+                      type="text"
+                      danger
+                      icon={<MinusCircleOutlined />}
+                      onClick={() => remove(name)}
+                    />
+                  </Space>
+                ))}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={() => add()}
+                    block
+                    icon={<PlusOutlined />}
+                  >
+                    결재자 추가
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+        )}
         {/* 열람자 */}
         <Form.Item label="열람자" name="viewerIds">
           <Select

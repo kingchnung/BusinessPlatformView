@@ -275,3 +275,6 @@ export const forceReject = (docId, reason) =>
   axiosInstance.put(`/approvals/admin/${docId}/force-reject`, null, {
     params: { reason },
   });
+
+// 📄 문서 상태 목록
+export const fetchDocumentStatuses = () => axiosInstance.get("/enums/document-status");
