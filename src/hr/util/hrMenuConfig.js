@@ -31,6 +31,12 @@ export const hrMenuConfig = [
         path: "/hr/employee/cards/edit",
       },
       {
+        key:"empCardSelectEdit",
+        label : "인사카드수정",
+        path : "employee/cards/edit/select",
+        role : "ROLE_MANAGER",
+      },
+      {
         key: "empCardAdd",
         label: "인사카드 등록",
         path: "/hr/employee/cards/add",

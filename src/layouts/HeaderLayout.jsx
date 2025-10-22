@@ -51,7 +51,7 @@ const HeaderLayout = () => {
           cursor: "pointer",
           whiteSpace: "nowrap",
         }}
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/main")}
       >
         BizMate
       </div>

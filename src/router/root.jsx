@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 // --- 레이아웃 컴포넌트 Import ---
 import RootLayout from "./RootLayout"; // ✅ 1번에서 만든 최상위 레이아웃
+import ProtectedRoute from "./ProtectedRoute";
 import AdminRouter from "../admin/router/AdminRouter";
 import adminRoutes from "../admin/router/AdminRoutes";
 import ApprovalRoutes from "../groupware/approval/router/ApprovalRoutes";
@@ -23,6 +24,7 @@ import MainLayout from "../layouts/MainLayout";
 const Loading = <div>Loading...</div>;
 const Main = lazy(() => import("../pages/MainPage"));
 const Login = lazy(() => import("../pages/LoginPage"));
+const Intro = lazy(()=>import("../pages/IntroPage"));
 
 const root = createBrowserRouter([
   {
@@ -33,11 +35,19 @@ const root = createBrowserRouter([
     children: [
       {
         index: true, // path: '/' 일 때 기본 페이지
-        element: <Suspense fallback={Loading}><Main /></Suspense>,
+        element: <Suspense fallback={Loading}>
+          
+          <Intro />
+          
+          </Suspense>,
       },
       {
         path: "main",
-        element: <Suspense fallback={Loading}><Main /></Suspense>,
+        element: <Suspense fallback={Loading}>
+          <ProtectedRoute>
+          <Main />
+          </ProtectedRoute>
+          </Suspense>,
       },
       // --- 전자결재 모듈 ---
       {
