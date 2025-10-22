@@ -12,10 +12,10 @@ import { handleApiError } from "../../util/apiErrorUtil";
 /**
  * 1️⃣ 결재문서 리스트 조회
  */
-export const getApprovalList = async (page = 1, size = 10, keyword = "") => {
+export const getApprovalList = async (page = 1, size = 10, status = "", keyword = "") => {
   try {
     const response = await axiosInstance.get("/approvals", {
-      params: { page, size, keyword },
+      params: { page, size, status, keyword },
     });
     console.log("📄 결재문서 목록:", response.data);
     return response.data;

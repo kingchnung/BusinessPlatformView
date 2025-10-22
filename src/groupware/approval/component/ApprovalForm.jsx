@@ -85,12 +85,23 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
   useEffect(() => {
     (async () => {
       try {
-        const types = await fetchDocumentTypes();
-        const formatted = types.map((t) => ({
-          label: t.label, // 한글 (퇴직서 등)
-          value: t.code,  // Enum 코드 (RESIGN 등)
+        const res = await fetchDocumentTypes();
+        console.log("📄 문서유형 응답:", res);
+
+        // ✅ 응답 구조에 따라 배열 부분 추출
+        const data =
+          Array.isArray(res) ? res :
+            Array.isArray(res.data) ? res.data :
+              Array.isArray(res.data?.data) ? res.data.data :
+                [];
+
+        const formatted = data.map((t) => ({
+          label: t.label || t.name || t.code,
+          value: t.code || t.value || t.id,
         }));
+
         setDocumentTypes(formatted);
+        console.log("✅ 문서유형 목록:", formatted);
       } catch (err) {
         console.error("❌ 문서유형 로드 실패:", err);
         message.error("문서유형 정보를 불러오지 못했습니다.");
@@ -208,9 +219,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
           status:
             actionType === "draft"
               ? "DRAFT"
-              : actionType === "resubmit"
-                ? "RESUBMITTED"
-                : "SUBMITTED",
+              : "IN_PROGRESS",
           docContent: docData,
           approvalLine: (values.approvalLine || []).map((a, i) => {
             const selectedEmp = employeeOptions.find(

@@ -5,7 +5,7 @@ const safeParse = (value) => {
     if (!value || value === "undefined" || value === "null") return null;
     return JSON.parse(value);
   } catch (err) {
-    console.warn("⚠️ 잘못된 user 데이터 감지, 초기화합니다:", value);
+    console.warn("⚠️ 잘못된 user 데이터 감지, 초기화합니다:", value, err);
     return null;
   }
 };
@@ -29,11 +29,11 @@ const authSlice = createSlice({
       state.token = token;
       state.isAuthenticated = true;
 
-<<<<<<< HEAD
+
       // ✅ 안전하게 localStorage에도 반영 (중복 저장 방지용)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-=======
+
       // --- 👇 localStorage 저장 로직 추가 ---
       localStorage.setItem('token', token); // 토큰 저장
       localStorage.setItem('user', JSON.stringify(user)); // 사용자 정보 저장 (선택 사항)
@@ -46,24 +46,24 @@ const authSlice = createSlice({
         // 역할 정보가 없으면 빈 배열 저장 (SideLayout에서 오류 방지)
         localStorage.setItem('roles', JSON.stringify([]));
       }
->>>>>>> origin/sales
+
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
 
-<<<<<<< HEAD
+
       // ✅ 로그아웃 시 스토리지 초기화
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("refreshToken"); // 있으면 같이 제거
-=======
+
       // --- 👇 로그아웃 시 localStorage에서도 제거 ---
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('roles');
->>>>>>> origin/sales
+
     },
   },
 });

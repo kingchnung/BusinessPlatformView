@@ -3,7 +3,7 @@ import { Table, message, Card, Spin, Input, Modal, Button, Space } from "antd";
 import { deleteDocument, getApprovalList } from "../../../api/groupware/approvalApi";
 import { useNavigate } from "react-router-dom";
 
-const ApprovalList = ({ refreshKey = 0 }) => {
+const ApprovalList = ({ refreshKey = 0, status = "ALL" }) => {
   const [loading, setLoading] = useState(false);
   const [approvals, setApprovals] = useState([]);
   const [pagination, setPagination] = useState({
@@ -22,18 +22,11 @@ const ApprovalList = ({ refreshKey = 0 }) => {
 
   /**
    * ✅ 결재문서 목록 로드
-   * 백엔드 응답 구조:
-   * {
-   *   dtoList: [...],
-   *   pageRequestDTO: { page: 1, size: 10 },
-   *   totalCount: 23,
-   *   prev: false, next: true
-   * }
    */
   const loadApprovals = async (page = 1, size = 10) => {
     try {
       setLoading(true);
-      const res = await getApprovalList(page, size);
+      const res = await getApprovalList(page, size, status);
 
       if (res && res.dtoList) {
         const filtered = res.dtoList.filter((doc) => doc.status !== "DELETED");
@@ -58,9 +51,9 @@ const ApprovalList = ({ refreshKey = 0 }) => {
 
   /** ✅ 최초 로드 + refreshKey 변경 시 재요청 */
   useEffect(() => {
-    loadApprovals(pagination.current, pagination.pageSize);
+    loadApprovals(1, pagination.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [refreshKey, status]);
 
   /** ✅ 페이지 변경 시 호출 */
   const handleTableChange = (paginationConfig) => {
@@ -121,6 +114,13 @@ const ApprovalList = ({ refreshKey = 0 }) => {
       key: "status",
       align: "center",
       render: (status) => {
+        const statusLabel = {
+          DRAFT: "임시저장",
+          IN_PROGRESS: "결재 대기",
+          APPROVED: "승인 완료",
+          REJECTED: "반려됨",
+          DELETED: "삭제됨",
+        };
         const color =
           status === "IN_PROGRESS"
             ? "orange"
@@ -129,7 +129,11 @@ const ApprovalList = ({ refreshKey = 0 }) => {
               : status === "REJECTED"
                 ? "red"
                 : "gray";
-        return <span style={{ color, fontWeight: 600 }}>{status}</span>;
+        return (
+          <span style={{ color, fontWeight: 600 }}>
+            {statusLabel[status] || status} {/* ✅ 한글 표시 */}
+          </span>
+        );
       },
     },
     {

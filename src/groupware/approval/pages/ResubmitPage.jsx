@@ -4,9 +4,9 @@ import Resubmit from "..//component/Resubmit";
 
 const ResubmitPage = () => {
   return (
-    <MainLayout>
+    
       <Resubmit />
-    </MainLayout>
+    
   );
 };
 

@@ -19,7 +19,6 @@ const HeaderLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-<<<<<<< HEAD
   // ✅ 1. localStorage에서 사용자 정보를 가져옵니다.
   let userRoles = [];
   try {
@@ -30,10 +29,8 @@ const HeaderLayout = () => {
   // ✅ 2. 사용자가 관리자 권한(ADMIN 또는 CEO)을 가지고 있는지 확인합니다.
   const isAdmin = userRoles.includes("ROLE_ADMIN") || userRoles.includes("ROLE_CEO");
 
-=======
   const currentTopMenuKey = useMemo(() => getTopMenuKey(location.pathname), [location.pathname]);
  
->>>>>>> origin/sales
   const menuItems = [
     { key: "main", label: "메인" },
     { key: "hr", label: "인사" },

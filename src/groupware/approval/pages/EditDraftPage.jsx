@@ -4,9 +4,9 @@ import MainLayout from "../../../layouts/MainLayout";
 
 const EditDraftPage = () => {
     return (
-        <MainLayout>
+        
             <EditDraft />
-        </MainLayout>
+        
     );
 };
 

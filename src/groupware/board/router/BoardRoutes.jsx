@@ -1,5 +1,4 @@
 import { lazy, Suspense } from "react";
-import BoardListPage from "../pages/BoardListPage";
 
 const Loading = <div>Loading...</div>;
 

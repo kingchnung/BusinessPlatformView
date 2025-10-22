@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Form, Input, DatePicker, Select, InputNumber } from "antd";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
-import { useFormInitializer } from "../../hooks/useFormInitializer";
+import { useFormInitializer } from "../../util/useFormInitializer";
 
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
