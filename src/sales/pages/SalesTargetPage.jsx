@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { Table, message, Card, Spin, Button, Space, Modal, Row, Col, Select } from "antd";
-import {
-  fetchSalesTargets,
-  deleteSalesTarget,
-  setSelectedYear,
-  clearTargetError
-} from '../slice/salesTargetSlice';
+import { Table, message, Card, Spin, Button, Space, Modal, Row, Col, Select, Pagination } from "antd";
+import { fetchSalesTargets, deleteSalesTarget, deleteMultipleSalesTargets, setSelectedYear, clearTargetError, setSelectedKeys} from '../slice/salesTargetSlice';
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import SalesTargetModal from "../components/SalesTargetModal";
 
-const { confirm } = Modal;
 const { Option } = Select;
 
 const SalesTargetPage = () => {
@@ -21,13 +15,18 @@ const SalesTargetPage = () => {
     list: targets,
     pagination: targetPagination, 
     selectedYear,
+    selectedKeys: selectedTargetKeys,
     loading: targetLoading,
     error: targetError
   } = useSelector((state) => state.salesTarget);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTarget, setEditingTarget] = useState(null);
 
+  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false); 
+  const [editingTarget, setEditingTarget] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingTargetId, setDeletingTargetId] = useState(null); 
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false); 
+  const [isDeleting, setIsDeleting] = useState(false); 
 
   const generateYearOptions = () => {
     const currentYear = new Date().getFullYear();
@@ -56,10 +55,10 @@ const SalesTargetPage = () => {
       message.error(errorMsg);
       // dispatch(clearTargetError());
     }
-  }, [targetError]);
+  }, [targetError, dispatch]);
 
 
-  const handleTableChange = (paginationConfig) => {
+  const handlePaginationChange = (paginationConfig) => {
     loadTargets(paginationConfig.current, paginationConfig.pageSize, selectedYear);
   };
 
@@ -69,27 +68,60 @@ const SalesTargetPage = () => {
   };
 
 
-  const showModal = (target = null) => { setIsModalOpen(true); setEditingTarget(target); };
-  const handleModalClose = () => { setIsModalOpen(false); setEditingTarget(null); };
+  const showTargetModal = (target = null) => { setIsTargetModalOpen(true); setEditingTarget(target); };
+  const handleTargetModalClose = () => { setIsTargetModalOpen(false); setEditingTarget(null); };
+  
 
-  const showDeleteConfirm = (targetId) => {
-    confirm({
-      title: "정말로 이 매출 목표를 삭제하시겠습니까?",
-      icon: <ExclamationCircleFilled />,
-      okText: "삭제", okType: "danger", cancelText: "취소",
-      async onOk() {
-        try {
-          await dispatch(deleteSalesTarget(targetId)).unwrap();
-          message.success("삭제되었습니다.");
-          // 삭제 후 현재 페이지 목록 다시 로드
-          loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear);
-        } catch (rejectedValueOrSerializedError) {
-          const errorMsg = rejectedValueOrSerializedError?.message || "삭제 처리 중 오류 발생";
-          message.error(errorMsg);
-        }
-      },
-    });
+ const showDeleteConfirmModal = (targetId = null) => {
+    console.log("Opening delete confirm modal. targetId:", targetId);
+    if (targetId) {
+      setDeletingTargetId(targetId);
+      setIsDeletingMultiple(false);
+    } else {
+      setDeletingTargetId(null);
+      setIsDeletingMultiple(true);
+    }
+    setIsDeleteConfirmOpen(true);
   };
+
+  
+  const handleDeleteConfirmClose = () => {
+    setIsDeleteConfirmOpen(false);
+    setDeletingTargetId(null);
+    setIsDeletingMultiple(false);
+    setIsDeleting(false);
+  };
+
+  
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (isDeletingMultiple) {
+        console.log("Attempting dispatch(deleteMultipleSalesTargets)... Keys:", selectedTargetKeys);
+        await dispatch(deleteMultipleSalesTargets(selectedTargetKeys)).unwrap();
+        message.success("선택된 매출 목표들이 삭제되었습니다.");
+      } else if (deletingTargetId) {
+        console.log("Attempting dispatch(deleteSalesTarget)... ID:", deletingTargetId);
+        await dispatch(deleteSalesTarget(deletingTargetId)).unwrap();
+        message.success("삭제되었습니다.");
+      }
+      loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear); // 현재 페이지/연도 기준 리로드
+      handleDeleteConfirmClose();
+    } catch (rejectedValueOrSerializedError) {
+      console.error("Delete failed:", rejectedValueOrSerializedError);
+      const errorMsg = rejectedValueOrSerializedError?.message || "삭제 처리 중 오류 발생";
+      message.error(errorMsg);
+      setIsDeleting(false);
+    }
+  };
+
+  const rowSelection = {
+    selectedRowKeys: selectedTargetKeys, 
+    onChange: (keys) => {
+      dispatch(setSelectedKeys(keys));
+    },
+  };
+
 
   const columns = [
     {
@@ -98,7 +130,7 @@ const SalesTargetPage = () => {
       key: "targetId",
       align: "center",
       width: "10%",
-      render: (text, record) => <a onClick={() => showModal(record)}>{text}</a>,
+     render: (text, record) => <a onClick={() => showTargetModal(record)}>{text}</a>,
     },
     { title: "등록일", dataIndex: "registrationDate", key: "registrationDate", align: "center", width: "15%" },
     { title: "목표 연도", dataIndex: "targetYear", key: "targetYear", align: "center", width: "10%", render: (text) => `${text}년` },
@@ -113,15 +145,19 @@ const SalesTargetPage = () => {
     },
     { title: "담당자", dataIndex: "writer", key: "writer", align: "center", width: "15%" },
     {
-      title: "관리",
+      title: " ",
       key: "actions",
       align: "center",
       width: "10%",
       render: (_, record) => (
-          <Button size="small" danger onClick={() => showDeleteConfirm(record.targetId)}>삭제</Button>
+          <Button size="small" danger onClick={() => showDeleteConfirmModal(record.targetId)}>삭제</Button>
       ),
     },
   ];
+
+
+  const hasSelected = selectedTargetKeys.length > 0;
+
 
   return (
     <MainLayout>
@@ -141,29 +177,63 @@ const SalesTargetPage = () => {
             </Space>
           </Col>
           <Col>
-            <Button onClick={() => showModal()} icon={<PlusOutlined />}>
-              신규 목표 등록
-            </Button>
+            <Space>
+              <Button danger onClick={() => showDeleteConfirmModal()} disabled={!hasSelected}>
+                선택 삭제
+              </Button>
+              <Button onClick={() => showTargetModal()} icon={<PlusOutlined />}>
+                신규 목표 등록
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Card>
 
       <Spin spinning={targetLoading} tip="로딩 중...">
         <Table
+          rowSelection={rowSelection}
           rowKey={(record) => record.targetId}
           dataSource={targets}
           columns={columns}
-          pagination={targetPagination}
-          onChange={handleTableChange}
+          pagination={false}             
         />
+
+         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+            { targets.length > 0 &&
+                <Pagination
+                    current={targetPagination.current}
+                    pageSize={targetPagination.pageSize}
+                    total={targetPagination.total}
+                    onChange={handlePaginationChange} // 별도 Pagination 용 핸들러
+                />
+             }
+        </div>
       </Spin>
 
       <SalesTargetModal
-        open={isModalOpen}
-        onClose={handleModalClose}
+        open={isTargetModalOpen}
+        onClose={handleTargetModalClose} 
         targetData={editingTarget}
-        onRefresh={() => loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear)}
+        onRefresh={() => loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear)} // 현재 페이지/연도 리로드
       />
+
+      <Modal
+        title={ <><ExclamationCircleFilled style={{ color: '#faad14', marginRight: 8 }} /> 삭제 확인</> }
+        open={isDeleteConfirmOpen}
+        onCancel={handleDeleteConfirmClose}
+        footer={[
+          <Button key="cancel" onClick={handleDeleteConfirmClose} disabled={isDeleting}>취소</Button>,
+          <Button key="delete" type="primary" danger loading={isDeleting} onClick={handleDelete}>삭제</Button>,
+        ]}
+      >
+        <p>
+          {isDeletingMultiple
+            ? `${selectedTargetKeys.length}개의 매출 목표를 정말로 삭제하시겠습니까?`
+            : `매출 목표 (ID: ${deletingTargetId})(을)를 정말로 삭제하시겠습니까?`}
+        </p>
+        <p style={{ color: 'grey' }}>삭제된 데이터는 복구할 수 없습니다.</p>
+      </Modal>
+
     </MainLayout>
   );
 };

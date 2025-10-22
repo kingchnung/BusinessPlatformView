@@ -7,6 +7,8 @@ import departmentReducer from "./hr/department/slice/departmentSlice";
 import clientReducer from "./sales/slice/clientSlice";
 import salesTargetReducer from "./sales/slice/salesTargetSlice";
 import orderReducer from "./sales/slice/orderSlice";
+import salesReducer from "./sales/slice/salesSlice";
+import collectionReducer from "./sales/slice/collectionSlice";
 
 const store = configureStore({
     reducer : {
@@ -16,7 +18,9 @@ const store = configureStore({
         department:departmentReducer,
         client: clientReducer,
         salesTarget: salesTargetReducer,
-        order: orderReducer,        
+        order: orderReducer,    
+        sales: salesReducer,    
+        collection: collectionReducer,
     }
 });
 

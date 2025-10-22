@@ -7,7 +7,7 @@ import { message } from "antd";
  */
 export const handleApiError = (error) => {
   if (error.response) {
-    const { status } = error.response;
+    const { status, data } = error.response;
     switch (status) {
       case 401:
       case 403:
@@ -19,7 +19,8 @@ export const handleApiError = (error) => {
         message.warning("요청하신 데이터를 찾을 수 없습니다.");
         break;
       case 500:
-        message.error("서버 내부 오류가 발생했습니다.");
+        // message.error("서버 내부 오류가 발생했습니다.");
+        console.error("❌ API Error (500):", data?.message || error.message);
         break;
       default:
         message.warning(`요청 실패 (상태코드: ${status})`);

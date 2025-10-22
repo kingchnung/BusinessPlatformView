@@ -14,14 +14,14 @@ export const salesMenuConfig = [
         path: "/sales/order/list",
       },
       {
-        key: "/sales/activities/sells",
+        key: "/sales/sales/list",
         label: "판매",
-        path: "/sales/activities/sells",
+        path: "/sales/sales/list",
       },
       {
-        key: "/sales/activities/collections",
+        key: "/sales/collection/list",
         label: "수금",
-        path: "/sales/activities/collections",
+        path: "/sales/collection/list",
       },
     ],
   },

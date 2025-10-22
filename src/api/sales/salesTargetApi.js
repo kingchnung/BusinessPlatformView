@@ -51,5 +51,21 @@ export const removeSalesTarget = async (targetId) => {
     return response.data;
   } catch (error) {
     handleApiError(error);
+    throw error;
+  }
+};
+
+/**
+ * 5️⃣ 여러 매출 목표 한번에 삭제
+ */
+export const removeSalesTargets = async (targetIds) => {
+  try {
+    const response = await axiosInstance.delete(`/sales/salesTarget/list`, {
+      data: targetIds
+    });
+    return response.data; 
+  } catch (error) {
+    handleApiError(error);
+    throw error;
   }
 };

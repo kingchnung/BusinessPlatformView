@@ -53,12 +53,28 @@ export const deleteSalesTarget = createAsyncThunk(
   }
 );
 
+// 👇 여러 목표 삭제 Thunk 추가
+export const deleteMultipleSalesTargets = createAsyncThunk(
+  'salesTarget/deleteMultipleSalesTargets',
+  async (targetIds, { rejectWithValue }) => {
+    try {
+      // 백엔드 API 호출 (removeSalesTargets 함수 필요)
+      await removeSalesTargets(targetIds);
+      return targetIds; // 성공 시 삭제된 ID 배열 반환
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: "매출 목표 선택 삭제 실패" });
+    }
+  }
+);
+
+
 const initialState = {
-  list: [], 
+  list: [],
   pagination: { current: 1, pageSize: 10, total: 0 },
-  selectedYear: new Date().getFullYear(), 
+  selectedYear: new Date().getFullYear(),
+  selectedKeys: [], 
   loading: false,
-  error: null, 
+  error: null,
 };
 
 const salesTargetSlice = createSlice({
@@ -67,6 +83,9 @@ const salesTargetSlice = createSlice({
   reducers: {
     setSelectedYear: (state, action) => {
       state.selectedYear = action.payload;
+    },
+    setSelectedKeys: (state, action) => {
+      state.selectedKeys = action.payload;
     },
      clearTargetError: (state) => {
       state.error = null;
@@ -105,13 +124,19 @@ const salesTargetSlice = createSlice({
          state.error = action.payload;
       })
       .addCase(deleteSalesTarget.fulfilled, (state, action) => {
-      
+        state.selectedKeys = state.selectedKeys.filter(key => key !== action.payload);
       })
       .addCase(deleteSalesTarget.rejected, (state, action) => {
          state.error = action.payload;
+      })
+      .addCase(deleteMultipleSalesTargets.fulfilled, (state, action) => {
+        state.selectedKeys = [];
+      })
+      .addCase(deleteMultipleSalesTargets.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
 
-export const { setSelectedYear, clearTargetError } = salesTargetSlice.actions;
+export const { setSelectedYear, setSelectedKeys, clearTargetError } = salesTargetSlice.actions;
 export default salesTargetSlice.reducer;

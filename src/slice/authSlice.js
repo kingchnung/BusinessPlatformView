@@ -23,7 +23,6 @@ const authSlice = createSlice({
       // 역할 정보 저장
       if (user && user.roles && Array.isArray(user.roles)) {
         localStorage.setItem('roles', JSON.stringify(user.roles));
-        console.log("Roles saved to localStorage:", JSON.stringify(user.roles)); // 저장 확인 로그
       } else {
         console.warn("User roles not found or not an array in login payload:", user);
         // 역할 정보가 없으면 빈 배열 저장 (SideLayout에서 오류 방지)

@@ -30,8 +30,12 @@ const ClientListPage = () => {
     error: clientError
   } = useSelector((state) => state.client); 
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingClientId, setDeletingClientId] = useState(null); // 단일 삭제 대상 ID
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false); // 선택 삭제 여부
+  const [isDeleting, setIsDeleting] = useState(false); // 삭제 API 로딩 상태
 
   const loadClients = (page = clientPagination.current, size = clientPagination.pageSize) => {
     dispatch(fetchClients({ page, size, search: clientSearchParams.search, keyword: clientSearchParams.keyword }));
@@ -57,62 +61,76 @@ const ClientListPage = () => {
       message.error(errorMsg);
       // dispatch(clearClientError());
     }
-  }, [clientError]);
+  }, [clientError, dispatch]);
+
 const handlePaginationChange = (page, pageSize) => {
     loadClients(page, pageSize);
   };
 
 
-  const showModal = (client = null) => {
+  const showClientModal = (client = null) => {
     const token = localStorage.getItem("token");
     if (!token && !client) {
       message.warning("로그인이 필요한 기능입니다.");
       navigate("/login");
       return;
     }
-    setIsModalOpen(true);
+    setIsClientModalOpen(true); 
     setEditingClient(client);
   };
-  const handleModalClose = () => {
-    setIsModalOpen(false);
+  const handleClientModalClose = () => {
+    setIsClientModalOpen(false);
     setEditingClient(null);
   };
 
-  const showDeleteConfirm = (clientNo) => {
-    confirm({
-      title: "정말로 이 거래처를 삭제하시겠습니까?",
-      icon: <ExclamationCircleFilled />,
-      okText: "삭제", okType: "danger", cancelText: "취소",
-      async onOk() {
-        try {
-          // unwrap()을 사용하면 Thunk 성공/실패 시 추가 로직 실행 가능
-          await dispatch(deleteClient(clientNo)).unwrap();
-          message.success("삭제되었습니다.");
-          loadClients();
-        } catch (rejectedValueOrSerializedError) {
-          const errorMsg = rejectedValueOrSerializedError?.message || "삭제 처리 중 오류 발생";
-          message.error(errorMsg);
-        }
-      },
-    });
+ // --- 👇 삭제 확인 모달 열기 함수 ---
+  const showDeleteConfirmModal = (clientId = null) => {
+    console.log("Opening delete confirm modal. clientId:", clientId); // 로그 추가
+    if (clientId) {
+      // 단일 삭제
+      setDeletingClientId(clientId);
+      setIsDeletingMultiple(false);
+    } else {
+      // 선택 삭제
+      setDeletingClientId(null);
+      setIsDeletingMultiple(true);
+    }
+    setIsDeleteConfirmOpen(true); // 확인 모달 열기
   };
 
-  const handleDeleteSelected = () => {
-    confirm({
-      title: `${selectedClientKeys.length}개의 거래처를 정말로 삭제하시겠습니까?`,
-      icon: <ExclamationCircleFilled />,
-      okText: "삭제", okType: "danger", cancelText: "취소",
-      async onOk() {
-        try {
-          await dispatch(deleteMultipleClients(selectedClientKeys)).unwrap();
-          message.success("선택된 거래처들이 삭제되었습니다.");
-          loadClients();
-        } catch (rejectedValueOrSerializedError) {
-          const errorMsg = rejectedValueOrSerializedError?.message || "선택 삭제 처리 중 오류 발생";
-          message.error(errorMsg);
-        }
-      },
-    });
+  // --- 👇 삭제 확인 모달 닫기 함수 ---
+  const handleDeleteConfirmClose = () => {
+    setIsDeleteConfirmOpen(false);
+    setDeletingClientId(null);
+    setIsDeletingMultiple(false);
+    setIsDeleting(false); // 로딩 상태 초기화
+  };
+
+  // --- 👇 삭제 실행 함수 (확인 모달의 OK 버튼 클릭 시) ---
+  const handleDelete = async () => {
+    setIsDeleting(true); // 삭제 로딩 시작
+    try {
+      if (isDeletingMultiple) {
+        // 선택 삭제
+        console.log("Attempting dispatch(deleteMultipleClients)... Keys:", selectedClientKeys);
+        await dispatch(deleteMultipleClients(selectedClientKeys)).unwrap();
+        message.success("선택된 거래처들이 삭제되었습니다.");
+      } else if (deletingClientId) {
+        // 단일 삭제
+        console.log("Attempting dispatch(deleteClient)... ID:", deletingClientId);
+        await dispatch(deleteClient(deletingClientId)).unwrap();
+        message.success("삭제되었습니다.");
+      }
+      loadClients(); // 성공 시 목록 새로고침 (선택 해제는 slice에서)
+      handleDeleteConfirmClose(); // 확인 모달 닫기
+
+    } catch (rejectedValueOrSerializedError) {
+      console.error("Delete failed:", rejectedValueOrSerializedError);
+      const errorMsg = rejectedValueOrSerializedError?.message || "삭제 처리 중 오류 발생";
+      message.error(errorMsg);
+      setIsDeleting(false); // 에러 시 로딩 상태 해제
+      // 확인 모달은 에러 시 자동으로 닫지 않음
+    }
   };
 
   const rowSelection = {
@@ -123,28 +141,29 @@ const handlePaginationChange = (page, pageSize) => {
   };
 
   const columns = [
-    { title: "사업자번호", dataIndex: "clientId", key: "clientId", align: "center", width: "15%" },
+    { title: "사업자번호", dataIndex: "clientId", key: "clientId", align: "center", width: "20%" },
     {
       title: "거래처명",
       dataIndex: "clientCompany",
       key: "clientCompany",
+      align: "center",
       render: (text, record) => (
-        <a onClick={() => showModal(record)}>
+        <a onClick={() => showClientModal(record)}>
           {text}
         </a>
       )
     },
-    { title: "대표자", dataIndex: "clientCeo", key: "clientCeo", align: "center", width: "10%" },
-    { title: "연락처", dataIndex: "clientContact", key: "clientContact", align: "center", width: "15%" },
+    { title: "대표자", dataIndex: "clientCeo", key: "clientCeo", align: "center", width: "15%" },
+    { title: "연락처", dataIndex: "clientContact", key: "clientContact", align: "center", width: "20%" },
     { title: "담당자", dataIndex: "writer", key: "writer", align: "center", width: "10%" },
     {
-      title: "선택",
+      title: " ",
       key: "actions", align: "center", width: "10%",
       render: (_, record) => (
           <Button
             size="small"
             danger
-            onClick={() => showDeleteConfirm(record.clientNo)}
+            onClick={() => showDeleteConfirmModal(record.clientNo)}
           >
             삭제
           </Button>
@@ -186,10 +205,10 @@ const handlePaginationChange = (page, pageSize) => {
 
           <Col>
             <Space>
-              <Button danger onClick={handleDeleteSelected} disabled={!hasSelected}>
+              <Button danger onClick={() => showDeleteConfirmModal()} disabled={!hasSelected}>
                 선택 삭제
               </Button>
-              <Button onClick={() => showModal()} icon={<PlusOutlined />}>
+              <Button onClick={() => showClientModal()} icon={<PlusOutlined />}>
                 신규 등록
               </Button>
             </Space>
@@ -211,18 +230,55 @@ const handlePaginationChange = (page, pageSize) => {
                 pageSize={clientPagination.pageSize}
                 total={clientPagination.total}
                 onChange={handlePaginationChange}
-                // showSizeChanger // 페이지 당 항목 수 변경 가능하도록
-                // pageSizeOptions={['10', '20', '50']} // 페이지 당 항목 수 옵션
+                showSizeChanger // 페이지 당 항목 수 변경 가능하도록
+                pageSizeOptions={['10', '20', '50']} // 페이지 당 항목 수 옵션
             />
         </div>
       </Spin>
 
       <ClientModal
-        open={isModalOpen}
-        onClose={handleModalClose}
+        open={isClientModalOpen}
+        onClose={handleClientModalClose}
         clientData={editingClient}
-        onRefresh={() => loadClients()}
+        onRefresh={() => loadClients(clientPagination.current, clientPagination.pageSize)} 
       />
+
+      {/* --- 👇 삭제 확인 모달 추가 --- */}
+      <Modal
+        title={
+          <>
+            <ExclamationCircleFilled style={{ color: '#faad14', marginRight: 8 }} />
+            삭제 확인
+          </>
+        }
+        open={isDeleteConfirmOpen} // state 연결
+        onCancel={handleDeleteConfirmClose} // 취소 핸들러
+        footer={[
+          <Button key="cancel" onClick={handleDeleteConfirmClose} disabled={isDeleting}>
+            취소
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            loading={isDeleting} // 삭제 중 로딩
+            onClick={handleDelete} // 삭제 실행 핸들러
+          >
+            삭제
+          </Button>,
+        ]}
+      >
+        <p>
+          {isDeletingMultiple
+            ? `${selectedClientKeys.length}개의 거래처를 정말로 삭제하시겠습니까?`
+            : `거래처 '${editingClient?.clientCompany || deletingClientId}'(을)를 정말로 삭제하시겠습니까?`}
+          {/* 단일 삭제 시 거래처 이름 표시 시도 (editingClient 활용 - 선택 사항) */}
+        </p>
+        <p style={{ color: 'grey' }}>삭제된 데이터는 복구할 수 없습니다.</p>
+      </Modal>
+      {/* --- 삭제 확인 모달 끝 --- */}
+
+
     </MainLayout>
   );
 };
