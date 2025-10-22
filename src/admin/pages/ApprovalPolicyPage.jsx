@@ -85,8 +85,9 @@ const ApprovalPolicyPage = () => {
       const res = await fetchDocumentTypes();
       const data = res?.data?.data || res?.data || [];
       const formatted = data.map((t) => ({
+        code: t.code,              // ✅ 추가
         label: t.label || t.name || t.code,
-        value: t.code,
+        value: t.code,             // ✅ value는 code 그대로
       }));
       setDocumentTypes(formatted);
     } catch {
@@ -147,6 +148,10 @@ const ApprovalPolicyPage = () => {
     loadPositions();
     loadDocumentTypes();
   }, []);
+
+  useEffect(() => {
+    console.log("📄 문서유형 로드됨:", documentTypes);
+  }, [documentTypes]);
 
   /** 새 정책 등록 */
   const openNewPolicyModal = async () => {
@@ -224,7 +229,22 @@ const ApprovalPolicyPage = () => {
       title: "문서유형",
       dataIndex: "docType",
       key: "docType",
-      render: (t) => t || "-",
+      render: (code) => {
+        if (!code) return "-";
+        if (!Array.isArray(documentTypes) || documentTypes.length === 0) {
+          return code; // 아직 documentTypes가 안 로드된 초기 렌더링
+        }
+
+        // ✅ 백엔드 Enum 데이터에 code, value 모두 대응
+        const found = documentTypes.find(
+          (t) =>
+            t.value === code ||
+            t.code === code ||
+            t.label === code // 혹시 label이 들어올 때도 대비
+        );
+
+        return found ? found.label : code;
+      },
     },
     {
       title: "결재자 순서 (직급)",
@@ -237,6 +257,18 @@ const ApprovalPolicyPage = () => {
             .map((s) => `${s.deptName || "-"}/${s.positionName || "-"}`)
             .join(" → ")
           : "(결재 단계 없음)",
+    },
+    {
+      title: "상태",
+      dataIndex: "active",
+      key: "active",
+      align: "center",
+      render: (active) =>
+        active ? (
+          <span style={{ color: "green", fontWeight: 600 }}>● 활성</span>
+        ) : (
+          <span style={{ color: "red", fontWeight: 600 }}>● 비활성</span>
+        ),
     },
     {
       title: "관리",

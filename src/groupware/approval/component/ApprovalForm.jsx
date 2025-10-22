@@ -17,6 +17,7 @@ import LeaveForm from "./forms/LeaveForm";
 import ResignationForm from "./forms/ResignationForm";
 import HRMoveForm from "./forms/HRMoveForm";
 import { fetchDepartments } from "../../../api/hr/departmentsAPI";
+import { fetchDocumentTypes } from "../../../api/groupware/policyApi";
 
 const { Option } = Select;
 
@@ -46,14 +47,15 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [fileList, setFileList] = useState([]);
   const [currentDocId, setCurrentDocId] = useState(null);
+  const [documentTypes, setDocumentTypes] = useState([]);
   const [docData, setDocData] = useState({});
   const [docType, setDocType] = useState(null);
 
   const token = localStorage.getItem("token");
 
-   /* ===========================================================
-     ✅ 직원 목록 & 부서 목록 로드
-  =========================================================== */
+  /* ===========================================================
+    ✅ 직원 목록 & 부서 목록 로드
+ =========================================================== */
   useEffect(() => {
     (async () => {
       try {
@@ -73,6 +75,25 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
       } catch (err) {
         console.error(err);
         message.error("기초 데이터를 불러올 수 없습니다.");
+      }
+    })();
+  }, []);
+
+  /* ===========================================================
+   ✅ 문서유형 목록 로드 (Enum 자동 연동)
+=========================================================== */
+  useEffect(() => {
+    (async () => {
+      try {
+        const types = await fetchDocumentTypes();
+        const formatted = types.map((t) => ({
+          label: t.label, // 한글 (퇴직서 등)
+          value: t.code,  // Enum 코드 (RESIGN 등)
+        }));
+        setDocumentTypes(formatted);
+      } catch (err) {
+        console.error("❌ 문서유형 로드 실패:", err);
+        message.error("문서유형 정보를 불러오지 못했습니다.");
       }
     })();
   }, []);
@@ -188,8 +209,8 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
             actionType === "draft"
               ? "DRAFT"
               : actionType === "resubmit"
-              ? "RESUBMITTED"
-              : "SUBMITTED",
+                ? "RESUBMITTED"
+                : "SUBMITTED",
           docContent: docData,
           approvalLine: (values.approvalLine || []).map((a, i) => {
             const selectedEmp = employeeOptions.find(
@@ -275,16 +296,8 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
               setDocType(value);
               setDocData({});
             }}
-            options={[
-              { label: "기안서(품의서)", value: "REQUEST" },
-              { label: "프로젝트 기획안/품의서", value: "PROJECT_PLAN" },
-              { label: "견적서/제안서 발송 품의", value: "ESTIMATE_PROPOSAL" },
-              { label: "지출결의서", value: "EXPENSE" },
-              { label: "구매 품의서", value: "PURCHASE" },
-              { label: "휴가 신청서", value: "LEAVE" },
-              { label: "사직서", value: "RESIGN" },
-              { label: "인사발령", value: "HR_MOVE" },
-            ]}
+            options={documentTypes} // ✅ 자동 로드된 Enum 기반 옵션
+            loading={documentTypes.length === 0}
           />
         </Form.Item>
 

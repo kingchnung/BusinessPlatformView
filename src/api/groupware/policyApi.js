@@ -15,5 +15,4 @@ export const deactivatePolicy = (id) => axiosInstance.patch(`/admin/policies/${i
 /** 정책 삭제 */
 export const deletePolicy = (id) => axiosInstance.delete(`/admin/policies/${id}`);
 
-export const fetchDocumentTypes = () =>
-  axiosInstance.get("/enums/document-types");
+export const fetchDocumentTypes = () => axiosInstance.get("/enums/document-types");
