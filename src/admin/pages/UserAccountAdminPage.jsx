@@ -12,7 +12,12 @@ const UserAccountAdminPage = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get("/users");
-      setUsers(res.data);
+      
+      const sorted = (res.data || []).sort((a, b) => {
+      if (a.accountNonLocked === b.accountNonLocked) return 0;
+      return a.accountNonLocked ? 1 : -1; // 잠금(false) 먼저
+    });
+      setUsers(sorted);
     } catch (err) {
       message.error("사용자 목록을 불러오지 못했습니다.");
     } finally {
@@ -28,6 +33,27 @@ const UserAccountAdminPage = () => {
       fetchUsers();
     } catch (err) {
       message.error("초기화 중 오류가 발생했습니다.");
+    }
+  };
+  const handleUnlock = async (userId) => {
+  try {
+      const res = await axiosInstance.post(`/users/${userId}/unlock`);
+      message.success(res.data.message);
+      fetchUsers();
+    } catch (err) {
+      message.error("잠금 해제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleToggleActive = async (userId, newActiveStatus) => {
+  try {
+      const res = await axiosInstance.put(`/users/${userId}/active`, {
+      active: newActiveStatus,
+      });
+      message.success(res.data.message);
+      fetchUsers();
+    } catch (err) {
+      message.error("계정 상태 변경 중 오류가 발생했습니다.");
     }
   };
 
@@ -67,10 +93,10 @@ const UserAccountAdminPage = () => {
     },
     {
       title: "락 여부",
-      dataIndex: "locked",
-      key: "locked",
+      dataIndex: "accountNonLocked",
+      key: "accountNonLocked",
       render: (val) => (
-        <Tag color={val ? "red" : "blue"}>{val ? "잠금" : "정상"}</Tag>
+        <Tag color={!val ? "red" : "blue"}>{!val ? "잠금" : "정상"}</Tag>
       ),
     },
     {
@@ -89,16 +115,45 @@ const UserAccountAdminPage = () => {
       title: "관리",
       key: "actions",
       render: (_, record) => (
+        <Space>
+           <Popconfirm
+            title="계정의 잠금을 해제하시겠습니까?"
+            onConfirm={() => handleUnlock(record.userId)}
+            okText="예"
+            cancelText="아니오"
+            >
+        <Button size="small">잠금 해제</Button>
+      </Popconfirm>
         <Popconfirm
           title="비밀번호를 초기화하고 잠금을 해제하시겠습니까?"
           onConfirm={() => handleReset(record.userId)}
           okText="예"
           cancelText="아니오"
         >
-          <Button size="small" danger>
-            초기화
-          </Button>
+          <Button size="small" danger>초기화</Button>
         </Popconfirm>
+
+        {/* 🔹 활성/비활성 토글 버튼 */}
+      <Popconfirm
+        title={
+          record.active
+            ? "해당 계정을 비활성화하시겠습니까?"
+            : "해당 계정을 활성화하시겠습니까?"
+        }
+        onConfirm={() => handleToggleActive(record.userId, !record.active)}
+        okText="예"
+        cancelText="아니오"
+      >
+        <Button
+          size="small"
+          type={record.active ? "default" : "primary"}
+        >
+          {record.active ? "비활성화" : "활성화"}
+        </Button>
+      </Popconfirm>
+
+
+        </Space>
       ),
     },
   ];

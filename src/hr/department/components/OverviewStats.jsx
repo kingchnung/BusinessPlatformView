@@ -41,7 +41,7 @@ const OverviewStats = ({ employees = [] }) => {
   const GENDER_COLORS = ['#0088FE', '#FF8042'];
 
   // 직위별 데이터
-  const positionMap = { 13: 'CEO', 14: '팀장', 15: '사원' };
+  const positionMap = { 1: 'CEO', 2: '팀장', 3: '사원' };
   const positionData = Object.entries(
     activeEmployees.reduce((acc, emp) => {
       const pos = positionMap[emp.positionCode] || '기타';
@@ -51,7 +51,7 @@ const OverviewStats = ({ employees = [] }) => {
   ).map(([name, count]) => ({ name, 인원: count }));
   
   // 직급별 데이터
-  const gradeMap = { 13: '임원', 14: '부장/차장', 15: '사원/대리' };
+  const gradeMap = { 1: '임원', 2: '부장/차장', 3: '사원/대리' };
   const gradeData = Object.entries(
     activeEmployees.reduce((acc, emp) => {
       const grade = gradeMap[emp.gradeCode] || '기타';

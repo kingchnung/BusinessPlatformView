@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-
-  Button,
- Form,
- Input,
- Modal,
- message,
- Space,
- Popconfirm,
-  Card,
-} from "antd";
-import {
-  LoginOutlined,
-  LogoutOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { Button, Form, Input, Modal, message, Space, Popconfirm, Card, } from "antd";
+import { LoginOutlined, LogoutOutlined, UserOutlined,} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, logout } from "../slice/authSlice";
@@ -26,44 +12,30 @@ const LoginSection = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isFindPwModalOpen, setIsFindPwModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const [form] = Form.useForm();
   const [findPwForm] = Form.useForm();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
   /* ✅ 새로고침 시 Redux 상태 복원 */
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-
     if (savedToken && savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      dispatch(
-        loginSuccess({
-          token: savedToken,
-          user: {
-            ...parsedUser,
-            deptName: parsedUser.deptName || "소속 부서 미지정",
-            deptCode: parsedUser.deptCode || "-",
-            ...parsedUser,
-          },
-        })
-      );
+      dispatch(loginSuccess({ token: savedToken, user: JSON.parse(savedUser) }));
     }
   }, [dispatch]);
 
   /* ✅ 로그인 요청 */
   const handleLogin = async (values) => {
     setLoading(true);
+    setErrorMsg("");
+
     try {
       const { user, token, refreshToken } = await loginUser(values);
-
       const decoded = jwtDecode(token);
-      console.log("Decoded Token : ", decoded);
-
-      console.log("✅ [Login Response user data]:", JSON.stringify(user, null, 2));
 
       const userWithDept = {
         ...user,
@@ -74,9 +46,6 @@ const LoginSection = () => {
         username: decoded.username,
       };
 
-      
-
-      // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(userWithDept));
@@ -86,7 +55,29 @@ const LoginSection = () => {
       setIsLoginModalOpen(false);
       navigate("/main");
     } catch (err) {
-      message.error("로그인 실패! 아이디 또는 비밀번호를 확인하세요.", { err });
+      console.error("로그인 실패:", err);
+      console.log("서버응답 : ", err.response?.data);
+
+      const error =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "로그인에 실패했습니다.";
+
+      let displayMsg = "로그인에 실패했습니다.";
+
+      if (error.includes("비밀번호")) {
+        displayMsg = error.includes("남은 시도")
+          ? `❌ ${error}`
+          : "❌ 비밀번호가 일치하지 않습니다. 다시 확인해주세요.";
+      } else if (error.includes("사용자를 찾을 수 없습니다")) {
+        displayMsg = "❌ 아이디를 확인해주세요. 존재하지 않는 계정입니다.";
+      } else if (error.includes("잠금") || error.includes("잠겨") || err.response?.data?.error === "LOGIN_FAILED") {
+        displayMsg = "🔒 계정이 잠겼습니다. 관리자에게 문의하세요.";
+      }
+
+      setErrorMsg(displayMsg);
+      // 팝업 메시지는 너무 반복되므로 생략
     } finally {
       setLoading(false);
     }
@@ -113,7 +104,7 @@ const LoginSection = () => {
       );
       setIsFindPwModalOpen(false);
       setIsLoginModalOpen(true);
-    } catch (err) {
+    } catch {
       message.error("입력하신 정보와 일치하는 계정을 찾을 수 없습니다.");
     } finally {
       setLoading(false);
@@ -127,9 +118,8 @@ const LoginSection = () => {
           <>
             <span style={{ color: "#fff", marginRight: 8 }}>
               <UserOutlined style={{ marginRight: 4 }} />
-              {user?.deptName || "소속 부서 미지정"} {user.empName} 님 환영합니다 😊
+              {user?.deptName || "소속 부서 미지정"} {user?.empName} 님 환영합니다 😊
             </span>
-
             <Popconfirm
               title="로그아웃 하시겠습니까?"
               okText="로그아웃"
@@ -180,6 +170,8 @@ const LoginSection = () => {
             label="아이디"
             name="username"
             rules={[{ required: true, message: "아이디를 입력하세요." }]}
+            validateStatus={errorMsg.includes("아이디") ? "error" : ""}
+            help={errorMsg.includes("아이디") ? errorMsg : ""}
           >
             <Input placeholder="아이디 입력" />
           </Form.Item>
@@ -188,6 +180,20 @@ const LoginSection = () => {
             label="비밀번호"
             name="password"
             rules={[{ required: true, message: "비밀번호를 입력하세요." }]}
+            validateStatus={
+              errorMsg.includes("비밀번호") ||
+              errorMsg.includes("남은 시도") ||
+              errorMsg.includes("잠금")
+                ? "error"
+                : ""
+            }
+            help={
+              errorMsg.includes("비밀번호") ||
+              errorMsg.includes("남은 시도") ||
+              errorMsg.includes("잠금")
+                ? errorMsg
+                : ""
+            }
           >
             <Input.Password placeholder="비밀번호 입력" />
           </Form.Item>

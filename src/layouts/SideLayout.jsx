@@ -3,6 +3,7 @@ import { Layout, Menu } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { adminMenuConfig } from "../admin/util/adminMenuConfig";
+import "./commonLayout_temp.css";
 // applyRoleBasedMenuPath는 현재 코드에서 사용되지 않으므로, 필요 없다면 제거해도 됩니다.
 // import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath";
 
@@ -117,13 +118,21 @@ const SideLayout = () => {
         items={filteredMenu.map((menu) => ({
           key: menu.path || menu.key, // path가 있으면 key로 사용하여 navigate와 연동
           icon: menu.icon,
-          label: menu.label,
-          children: menu.children
-            ? menu.children.map((child) => ({
-                key: child.path || child.key,
-                label: child.label,
-                icon: child.icon,
-              }))
+          label: (
+      <span className={menu.role ? "admin-menu-label" : ""}>
+        {menu.label}
+      </span>
+    ),
+    children: menu.children
+      ? menu.children.map((child) => ({
+          key: child.path || child.key,
+          icon: child.icon,
+          label: (
+            <span className={child.role ? "admin-menu-label" : ""}>
+              {child.label}
+            </span>
+          ),
+        }))
             : undefined,
         }))}
       />
