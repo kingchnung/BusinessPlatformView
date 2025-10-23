@@ -26,3 +26,9 @@ export const removeCollection = async (collectionId) => {
   const { data } = await axiosInstance.delete(`/sales/collection/${collectionId}`);
   return data; // { RESULT: "SUCCESS" }
 };
+
+
+export const listCollectionsByClient = async (clientId) => {
+  const { data } = await axiosInstance.get(`/sales/collection/client/${clientId}`);
+  return data; // List<CollectionDTO>
+};

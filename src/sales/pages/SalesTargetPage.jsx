@@ -6,6 +6,7 @@ import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import SalesTargetModal from "../components/SalesTargetModal";
 
+
 const { Option } = Select;
 
 const SalesTargetPage = () => {
@@ -161,8 +162,8 @@ const SalesTargetPage = () => {
 
   return (
     <MainLayout>
-      <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>매출 목표 관리</h2>
-
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>매출 목표 관리</h2>
+      
       <Card style={{ marginBottom: 20 }}>
         <Row justify="space-between" align="middle">
           <Col>
@@ -204,7 +205,7 @@ const SalesTargetPage = () => {
                     current={targetPagination.current}
                     pageSize={targetPagination.pageSize}
                     total={targetPagination.total}
-                    onChange={handlePaginationChange} // 별도 Pagination 용 핸들러
+                    onChange={handlePaginationChange}
                 />
              }
         </div>

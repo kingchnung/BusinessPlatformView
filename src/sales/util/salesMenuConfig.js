@@ -35,9 +35,9 @@ export const salesMenuConfig = [
         path: "/sales/revenue/goals", // 라우터에 정의된 경로
       },
       {
-        key: "/sales/revenue/status",
+        key: "/sales/sales/report",
         label: "매출 현황",
-        path: "/sales/revenue/status",
+        path: "/sales/sales/report",
       },
     ],
   },

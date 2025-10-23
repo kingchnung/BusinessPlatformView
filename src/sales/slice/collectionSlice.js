@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-// 💡 1. API 함수를 collectionApi에서 가져옵니다.
 import { listCollections, removeCollection } from "../../api/sales/collectionApi";
 
 // 💡 2. Thunk 이름을 'collection/...'으로 변경
@@ -51,11 +50,11 @@ export const deleteMultipleCollections = createAsyncThunk(
   }
 );
 
+
 const collectionSlice = createSlice({
-  name: "collection", // 💡 name: "collection"
+  name: "collection",
   initialState: {
     list: [],
-    // 💡 5. searchParams를 Collection 기준으로 수정
     searchParams: {
       search: "c", // 기본값 'c' (거래처명)
       keyword: "",
@@ -63,11 +62,12 @@ const collectionSlice = createSlice({
       endDate: null,
       minAmount: null,
       maxAmount: null,
-      // (invoiceIssued, orderId 등 Sales 전용 필드 제거)
     },
-    selectedKeys: [],
+       selectedKeys: [],
+    pagination: { current: 1, pageSize: 10, total: 0 },
     loading: false,
     error: null,
+
   },
   reducers: {
     setSearchParam(state, action) {
@@ -79,14 +79,12 @@ const collectionSlice = createSlice({
     setSelectedKeys(state, action) {
       state.selectedKeys = action.payload || [];
     },
-    // 💡 6. clearCollectionError로 이름 변경
+
     clearCollectionError(state) {
       state.error = null;
     },
   },
   extraReducers: (builder) => {
-    // 💡 7. 모든 thunk를 collection 버전으로 교체
-    
     // --- fetchCollections ---
     builder.addCase(fetchCollections.pending, (state) => {
       state.loading = true;
