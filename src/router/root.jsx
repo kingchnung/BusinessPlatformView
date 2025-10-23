@@ -10,6 +10,8 @@ import ApprovalRoutes from "../groupware/approval/router/ApprovalRoutes";
 import ApprovalRouter from "../groupware/approval/router/ApprovalRouter";
 import hrRoutes from "../hr/router/HrRoutes";
 import HrRouter from "../hr/router/HrRouter";
+import SalesRouter from "../sales/router/SalesRouter";
+import SalesRoutes from "../sales/router/SalesRoutes";
 
 import BoardRouter from "../groupware/board/router/BoardRouter";
 import boardRoutes from "../groupware/board/router/BoardRoutes";
@@ -66,7 +68,11 @@ const root = createBrowserRouter([
         element : <AdminRouter />,
         children: adminRoutes,     
       },
-
+      {
+        path :"sales",
+        element : <SalesRouter />,
+        children: SalesRoutes,     
+      },
     ],
   },
   {
@@ -74,8 +80,6 @@ const root = createBrowserRouter([
     path: "/login",
     element: <Suspense fallback={Loading}><Login /></Suspense>,
   },
-  
-
 ]);
 
 export default root;
