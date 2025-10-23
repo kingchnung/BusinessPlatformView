@@ -27,3 +27,8 @@ export const removeSales = async (salesId) => {
   const { data } = await axiosInstance.delete(`/sales/sales/${salesId}`);
   return data; // { RESULT: "SUCCESS" }
 };
+
+export const listSalesByClient = async (clientId) => {
+  const { data } = await axiosInstance.get(`/sales/sales/client/${clientId}`);
+  return data; // List<SalesDTO>
+};

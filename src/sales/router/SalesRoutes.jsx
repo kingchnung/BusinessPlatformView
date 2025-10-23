@@ -7,6 +7,8 @@ const SalesTargetPage = lazy(()=> import("../pages/SalesTargetPage"));
 const OrderListPage = lazy(() => import("../pages/OrderListPage"));
 const SalesListPage = lazy(() =>import("../pages/SalesListPage"));
 const CollectionListPage = lazy(() => import("../pages/CollectionListPage"));
+const SalesReportPage = lazy(() => import("../pages/SalesReportPage"));
+const SalesStatusListPage = lazy(()=> import("../pages/SalesStatusListPage"));
 
 const salesRoutes = [
     {
@@ -16,10 +18,6 @@ const salesRoutes = [
   {
     path: "client/list", 
     element: <Suspense fallback={Loading}><ClientListPage /></Suspense>,
-  },
-  {
-    path: "revenue/goals", 
-    element: <Suspense fallback={Loading}><SalesTargetPage /></Suspense>,
   },
   {
     path: "order/list",
@@ -33,6 +31,19 @@ const salesRoutes = [
     path: "collection/list",
     element: <Suspense fallback={Loading}><CollectionListPage /></Suspense>,
   },
+    {
+    path: "revenue/goals", 
+    element: <Suspense fallback={Loading}><SalesTargetPage /></Suspense>,
+  },
+    {
+    path: "sales/report", 
+    element: <Suspense fallback={Loading}><SalesReportPage /></Suspense>,
+  },
+      {
+    path: "sales/status", 
+    element: <Suspense fallback={Loading}><SalesStatusListPage /></Suspense>,
+  },
+
 
 ];
 
