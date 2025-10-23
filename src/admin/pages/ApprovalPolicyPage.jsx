@@ -23,74 +23,37 @@ import {
   fetchDocumentTypes,
   fetchPolicies,
 } from "../../api/groupware/policyApi";
-import { fetchPositions } from "../../api/hr/positionAPI";
-import { fetchUserProfile } from "../../api/userApi";
+import { fetchEmployees } from "../../api/hr/employeeApi";
 import { useSelector } from "react-redux";
-import { fetchDepartments } from "../../api/hr/departmentsAPI";
+import { useWatch } from "antd/es/form/Form"; // ✅ 실시간 감시용 Hook
 
 const { Option } = Select;
 
 const ApprovalPolicyPage = () => {
   const [loading, setLoading] = useState(false);
   const [policies, setPolicies] = useState([]);
-  const [positions, setPositions] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false); // ✅ 비활성화 모달
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmMode, setConfirmMode] = useState("deactivate");
-  const [selectedId, setSelectedId] = useState(null);    // ✅ 비활성화 대상 ID
+  const [selectedId, setSelectedId] = useState(null);
   const [form] = Form.useForm();
   const [documentTypes, setDocumentTypes] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
+  // ✅ useWatch로 Form 내부의 steps 필드 변경을 실시간 감시
+  const steps = useWatch("steps", form);
 
   const { user: currentUser } = useSelector((state) => state.auth);
-  const [userProfile, setUserProfile] = useState(null);
 
-  /** 사용자 프로필 */
-  const loadUserProfile = async () => {
-    try {
-      if (!currentUser?.userId) return;
-      const profile = await fetchUserProfile(currentUser.userId);
-      setUserProfile(profile);
-    } catch {
-      message.error("사용자 정보를 불러오지 못했습니다.");
-    }
-  };
-
-  /** ✅ 부서 목록 로드 (최종 확정 버전) */
-  const loadDepartments = async () => {
-    try {
-      const res = await fetchDepartments();
-      const data = res || [];
-
-      console.log("📦 부서 API 응답:", data);
-
-      // ✅ 응답이 배열이면 그대로 사용
-      const raw = Array.isArray(data) ? data : data.data || [];
-
-      // ✅ Antd Select에 맞는 형태로 변환
-      const formatted = raw.map((d) => ({
-        label: d.deptName,   // 드롭다운 표시 텍스트
-        value: d.deptCode,   // 내부 값
-      }));
-
-      console.log("✅ 변환된 부서 목록:", formatted);
-      setDepartments(formatted);
-    } catch (err) {
-      console.error("❌ 부서 목록 로드 실패:", err);
-      message.error("부서 정보를 불러오지 못했습니다.");
-    }
-  };
-
-  /** 문서 유형 */
+  /** 🔹 문서유형 목록 로드 */
   const loadDocumentTypes = async () => {
     try {
       const res = await fetchDocumentTypes();
       const data = res?.data?.data || res?.data || [];
       const formatted = data.map((t) => ({
-        code: t.code,              // ✅ 추가
         label: t.label || t.name || t.code,
-        value: t.code,             // ✅ value는 code 그대로
+        value: t.code,
       }));
       setDocumentTypes(formatted);
     } catch {
@@ -98,17 +61,43 @@ const ApprovalPolicyPage = () => {
     }
   };
 
-  /** 정책 목록 */
+  /** 🔹 직원 목록 로드 */
+  const loadEmployees = async () => {
+    try {
+      const res = await fetchEmployees();
+      // ✅ res가 배열이므로 바로 사용 가능
+      const data = Array.isArray(res) ? res : res?.data || [];
+
+      const formatted = data.map((emp) => ({
+        label: `${emp.empName}`,
+        value: emp.empId, // approverId로 사용
+        empId: emp.empId,
+        empNo: emp.empNo,
+        empName: emp.empName,
+        deptCode: emp.deptId,
+        deptName: emp.deptName,
+        positionCode: emp.positionCode,
+        positionName: emp.positionName,
+      }));
+
+      setEmployees(formatted);
+      console.log("✅ 직원 목록 로드됨:", formatted);
+    } catch (err) {
+      console.error("❌ 직원 목록 로드 실패:", err);
+      message.error("직원 정보를 불러오지 못했습니다.");
+    }
+  };
+
+  /** 🔹 정책 목록 로드 */
   const loadPolicies = async () => {
     setLoading(true);
     try {
       const res = await fetchPolicies();
-      const data =
-        Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray(res?.data?.data)
-            ? res.data.data
-            : [];
+      const data = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.data?.data)
+        ? res.data.data
+        : [];
       const sortedData = [...data].sort((a, b) =>
         (a.policyName || "").localeCompare(b.policyName || "", "ko-KR")
       );
@@ -120,51 +109,21 @@ const ApprovalPolicyPage = () => {
     }
   };
 
-  /** 직급 목록 */
-  const loadPositions = async () => {
-    try {
-      const res = await fetchPositions();
-      const data = res?.data?.data || res?.data || res || [];
-      const formatted = data.map((pos) => ({
-        label:
-          pos.positionName ||
-          pos.position_name ||
-          pos.name ||
-          `직급-${pos.positionCode}`,
-        value:
-          pos.positionCode ||
-          pos.position_code ||
-          pos.code ||
-          pos.id,
-      }));
-      setPositions(formatted);
-    } catch {
-      message.error("직급 정보를 불러오지 못했습니다.");
-    }
-  };
-
-  /** 초기 데이터 로드 */
+  /** ✅ 초기 로드 */
   useEffect(() => {
-    loadUserProfile();
-    loadDepartments();
-    loadPolicies();
-    loadPositions();
+    loadEmployees();
     loadDocumentTypes();
+    loadPolicies();
   }, []);
 
-  useEffect(() => {
-    console.log("📄 문서유형 로드됨:", documentTypes);
-  }, [documentTypes]);
-
-  /** 새 정책 등록 */
+  /** 🔹 새 정책 등록 */
   const openNewPolicyModal = async () => {
-    if (positions.length === 0) await loadPositions();
     setEditingPolicy(null);
     form.resetFields();
     setModalOpen(true);
   };
 
-  /** 수정 모달 */
+  /** 🔹 수정 모달 열기 */
   const openEditModal = (policy) => {
     setEditingPolicy(policy);
     form.setFieldsValue({
@@ -175,11 +134,12 @@ const ApprovalPolicyPage = () => {
     setModalOpen(true);
   };
 
-  /** 저장 */
+  /** 🔹 저장 처리 */
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       const stepsArray = Array.isArray(values.steps) ? values.steps : [];
+
       if (stepsArray.length === 0) {
         message.warning("최소 한 개 이상의 결재 단계를 추가해주세요.");
         return;
@@ -190,18 +150,19 @@ const ApprovalPolicyPage = () => {
         docType: values.docType,
         steps: stepsArray.map((step, index) => ({
           stepOrder: index + 1,
+          approverId: step.approverId,
+          approverName: step.approverName,
           deptCode: step.deptCode,
+          deptName: step.deptName,
           positionCode: step.positionCode,
-          empId: null,
+          positionName: step.positionName,
         })),
       };
 
       if (editingPolicy) {
-        // ✅ 수정모드면 updatePolicy 호출
         await updatePolicy(editingPolicy.id, payload);
         message.success("결재선 정책이 수정되었습니다.");
       } else {
-        // ✅ 신규등록
         await createPolicy(payload);
         message.success("결재선 정책이 등록되었습니다.");
       }
@@ -214,14 +175,13 @@ const ApprovalPolicyPage = () => {
     }
   };
 
-  /** ✅ 모달 열기 */
+  /** 🔹 상태 변경 모달 */
   const openConfirmModal = (id, mode) => {
     setSelectedId(id);
-    setConfirmMode(mode); // deactivate | activate | delete
+    setConfirmMode(mode);
     setConfirmOpen(true);
   };
 
-  /** ✅ 실제 실행 (비활성화 / 활성화 / 삭제) */
   const handleConfirm = async () => {
     try {
       if (!selectedId) return;
@@ -244,7 +204,7 @@ const ApprovalPolicyPage = () => {
     }
   };
 
-  /** 테이블 컬럼 정의 */
+  /** 🔹 테이블 컬럼 정의 */
   const columns = [
     { title: "정책명", dataIndex: "policyName", key: "policyName" },
     {
@@ -252,32 +212,23 @@ const ApprovalPolicyPage = () => {
       dataIndex: "docType",
       key: "docType",
       render: (code) => {
-        if (!code) return "-";
-        if (!Array.isArray(documentTypes) || documentTypes.length === 0) {
-          return code; // 아직 documentTypes가 안 로드된 초기 렌더링
-        }
-
-        // ✅ 백엔드 Enum 데이터에 code, value 모두 대응
-        const found = documentTypes.find(
-          (t) =>
-            t.value === code ||
-            t.code === code ||
-            t.label === code // 혹시 label이 들어올 때도 대비
-        );
-
+        const found = documentTypes.find((t) => t.value === code);
         return found ? found.label : code;
       },
     },
     {
-      title: "결재자 순서 (직급)",
+      title: "결재선",
       dataIndex: "steps",
       key: "steps",
       render: (steps) =>
         steps?.length
           ? steps
-            .sort((a, b) => a.stepOrder - b.stepOrder)
-            .map((s) => `${s.deptName || "-"}/${s.positionName || "-"}`)
-            .join(" → ")
+              .sort((a, b) => a.stepOrder - b.stepOrder)
+              .map(
+                (s) =>
+                  `${s.stepOrder}. ${s.approverName || "-"} (${s.deptName || "-"}/${s.positionName || "-"})`
+              )
+              .join(" → ")
           : "(결재 단계 없음)",
     },
     {
@@ -365,7 +316,7 @@ const ApprovalPolicyPage = () => {
         pagination={false}
       />
 
-      {/* ✅ 일반 등록/수정 모달 */}
+      {/* ✅ 등록/수정 모달 */}
       <Modal
         title={editingPolicy ? "결재선 정책 수정" : "새 결재선 정책 추가"}
         open={modalOpen}
@@ -373,6 +324,7 @@ const ApprovalPolicyPage = () => {
         onOk={handleSave}
         okText="저장"
         cancelText="취소"
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -388,68 +340,73 @@ const ApprovalPolicyPage = () => {
             name="docType"
             rules={[{ required: true, message: "문서 유형을 선택하세요." }]}
           >
-            <Select
-              placeholder="결재 정책이 적용될 문서 유형을 선택하세요"
-              options={documentTypes}
-            />
+            <Select placeholder="문서 유형 선택" options={documentTypes} />
           </Form.Item>
 
+          {/* ✅ Form.List로 결재선 관리 */}
           <Form.List name="steps">
             {(fields, { add, remove }) => (
               <>
-                {fields.map(({ key, name, ...restField }) => (
-                  <div
-                    key={key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Form.Item
-                      {...restField}
-                      name={[name, "deptCode"]}
-                      label="부서"
-                      rules={[{ required: true, message: "부서를 선택하세요." }]}
-                      style={{ flex: 1 }}
-                    >
-                      <Select
-                        key={departments.length} // ✅ 이 한 줄로 강제 리렌더
-                        allowClear
-                        placeholder="부서 선택"
-                        options={departments.map((d) => ({
-                          label: String(d.label),
-                          value: String(d.value),
-                        }))} // ✅ 타입 보장
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
+                {fields.map(({ key, name, ...restField }) => {
+                  // 🔹 useWatch에서 실시간 steps 상태 가져오기
+                  const currentStep = steps?.[name] || {};
 
-                    <Form.Item
-                      {...restField}
-                      name={[name, "positionCode"]}
-                      label="직급"
-                      rules={[{ required: true, message: "직급을 선택하세요." }]}
-                      style={{ flex: 1 }}
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: 8,
+                      }}
                     >
-                      <Select
-                        placeholder="직급 선택"
-                        options={positions}
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
+                      {/* 결재자 선택 */}
+                      <Form.Item
+                        {...restField}
+                        name={[name, "approverId"]}
+                        label="결재자"
+                        rules={[{ required: true, message: "결재자를 선택하세요." }]}
+                        style={{ flex: 2 }}
+                      >
+                        <Select
+                          showSearch
+                          placeholder="결재자 선택"
+                          options={employees}
+                          onChange={(value, option) => {
+                            // ✅ 선택 시 결재자 정보 전체를 Form에 반영
+                            form.setFieldValue(["steps", name], {
+                              approverId: value,
+                              approverName: option.empName,
+                              deptCode: option.deptCode,
+                              deptName: option.deptName,
+                              positionCode: option.positionCode,
+                              positionName: option.positionName,
+                              empId: value,
+                            });
+                          }}
+                        />
+                      </Form.Item>
 
-                    <Button
-                      danger
-                      type="text"
-                      onClick={() => remove(name)}
-                      style={{ marginTop: 28 }}
-                    >
-                      삭제
-                    </Button>
-                  </div>
-                ))}
+                      {/* ✅ 실시간 부서 / 직급 표시 (useWatch 기반) */}
+                      <div style={{ flex: 1, color: "#555" }}>
+                        {currentStep?.deptName || "-"}
+                      </div>
+                      <div style={{ flex: 1, color: "#555" }}>
+                        {currentStep?.positionName || "-"}
+                      </div>
+
+                      <Button
+                        danger
+                        type="text"
+                        onClick={() => remove(name)}
+                        style={{ marginTop: 28 }}
+                      >
+                        삭제
+                      </Button>
+                    </div>
+                  );
+                })}
                 <Form.Item>
                   <Button
                     type="dashed"
@@ -466,7 +423,7 @@ const ApprovalPolicyPage = () => {
         </Form>
       </Modal>
 
-      {/* ✅ 비활성화 확인 모달 */}
+      {/* ✅ 상태 변경 모달 */}
       <Modal
         open={confirmOpen}
         onCancel={() => setConfirmOpen(false)}
@@ -475,31 +432,29 @@ const ApprovalPolicyPage = () => {
           confirmMode === "deactivate"
             ? "비활성화"
             : confirmMode === "activate"
-              ? "활성화"
-              : "삭제"
+            ? "활성화"
+            : "삭제"
         }
         cancelText="취소"
         okType={
-          confirmMode === "delete"
+          confirmMode === "delete" || confirmMode === "deactivate"
             ? "danger"
-            : confirmMode === "deactivate"
-              ? "danger"
-              : "primary"
+            : "primary"
         }
         title={
           confirmMode === "deactivate"
             ? "정책 비활성화"
             : confirmMode === "activate"
-              ? "정책 활성화"
-              : "정책 삭제"
+            ? "정책 활성화"
+            : "정책 삭제"
         }
       >
         <p>
           {confirmMode === "deactivate"
             ? "이 정책을 비활성화하면 문서 작성 시 자동 결재선으로 적용되지 않습니다."
             : confirmMode === "activate"
-              ? "이 정책을 다시 활성화하시겠습니까?"
-              : "이 정책을 완전히 삭제하시겠습니까? 복구할 수 없습니다."}
+            ? "이 정책을 다시 활성화하시겠습니까?"
+            : "이 정책을 완전히 삭제하시겠습니까? 복구할 수 없습니다."}
         </p>
       </Modal>
     </Card>

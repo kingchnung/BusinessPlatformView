@@ -272,6 +272,17 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
             `${actionType === "draft" ? "임시저장" : "상신"} 완료되었습니다 ✅`
           );
           onSuccess();
+
+          form.resetFields();
+          setUploadedFiles([]);
+          setFileList([]);
+          setDocData({});
+          setDocType(null);
+          setAutoApprovalLine([]);
+          setManualMode(true);
+
+          // ✅ 부모 모달 닫기 콜백 (상위 컴포넌트에서 전달받음)
+          if (onSuccess) onSuccess();
         } else {
           message.warning("서버 응답에 문서 ID가 없습니다.");
         }
@@ -415,7 +426,7 @@ const ApprovalForm = ({ isResubmit = false, initialData = null, onSuccess }) => 
                       {s.positionName}
                     </td>
                     <td style={{ border: "1px solid #ddd", textAlign: "center" }}>
-                      {s.empName}
+                      {s.approverName || s.empName}
                     </td>
                   </tr>
                 ))}

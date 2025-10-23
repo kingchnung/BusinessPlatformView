@@ -43,7 +43,7 @@ const ApprovalDetail = ({ docId }) => {
         ✅ 문서 상세조회 및 현재 결재자 확인
     =========================================================== */
     useEffect(() => {
-        if (!docId || !currentUser) return; // docId나 currentUser가 없으면 실행하지 않음
+        if (!docId || !currentUser) return;
 
         const fetchDetail = async () => {
             try {
@@ -51,28 +51,57 @@ const ApprovalDetail = ({ docId }) => {
                 setDetail(res);
                 console.log("📄 [상세조회 성공]", res);
 
-                // ✅ [로직 추가] 문서 상태가 '진행중'일 때, 현재 사용자가 결재자인지 확인
-                if (res.status === 'IN_PROGRESS') {
-                    // 결재 라인에서 현재 'PENDING' 상태인 단계를 찾습니다.
-                    const currentStep = res.approvalLine.find(step => step.decision === 'PENDING');
+                // 🔹 안전 가드 추가
+                if (
+                    res.status === "IN_PROGRESS" &&
+                    Array.isArray(res.approvalLine) &&
+                    res.approvalLine.length > 0 &&
+                    typeof res.currentApproverIndex === "number" &&
+                    res.currentApproverIndex < res.approvalLine.length
+                ) {
+                    const currentStep = res.approvalLine[res.currentApproverIndex];
 
-                    // 현재 단계의 결재자 ID와 로그인한 사용자의 username(사번)이 일치하는지 확인
-                    if (currentStep && currentStep.approverId === currentUser.username) {
-                        setIsCurrentUserTheApprover(true);
-                        console.log("✅ 당신은 현재 결재자입니다.");
+                    const equalsIgnoreCaseTrim = (a, b) => {
+                        if (!a || !b) return false;
+                        return a.trim().toLowerCase() === b.trim().toLowerCase();
+                    };
+
+                    const isApprover =
+                        currentStep &&
+                        (
+                            equalsIgnoreCaseTrim(currentStep.approverId, currentUser.username) ||
+                            equalsIgnoreCaseTrim(currentStep.approverId, currentUser.empNo) ||
+                            (currentStep.approverId === "-" &&
+                                equalsIgnoreCaseTrim(currentStep.approverName, currentUser.empName))
+                        );
+
+                    setIsCurrentUserTheApprover(isApprover);
+
+                    if (isApprover) {
+                        console.log("✅ 현재 결재자:", currentUser.empName);
                     } else {
-                        setIsCurrentUserTheApprover(false);
-                        console.log("🚫 당신은 현재 결재자가 아닙니다.");
+                        console.log("🚫 현재 결재자가 아닙니다.");
+                        console.log("🔍 비교값 →", {
+                            approverId: currentStep.approverId,
+                            approverName: currentStep.approverName,
+                            username: currentUser.username,
+                            empNo: currentUser.empNo,
+                            empName: currentUser.empName,
+                            currentApproverIndex: res.currentApproverIndex,
+                        });
                     }
+                } else {
+                    console.warn("⚠️ 결재선 정보가 비어 있거나 currentApproverIndex가 유효하지 않습니다.");
+                    setIsCurrentUserTheApprover(false);
                 }
-
             } catch (err) {
                 console.error("❌ 문서 상세조회 실패:", err);
                 message.error("문서 정보를 불러올 수 없습니다.");
             }
         };
+
         fetchDetail();
-    }, [docId, currentUser]); // currentUser가 로드된 후에도 이 로직이 실행되도록 의존성 배열에 추가
+    }, [docId, currentUser]);
 
     // detail이 로드된 후 로그 출력
     useEffect(() => {
