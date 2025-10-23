@@ -5,16 +5,15 @@ import { handleApiError } from "../../util/apiErrorUtil";
 /**
  * 2️⃣ 게시글 목록 조회
  */
-export const getBoardList = async (type = "ALL") => {
-  try {
-    const params = type !== "ALL" ? { type } : {}; // ✅ ALL일 때는 파라미터 제거
-    const res = await axiosInstance.get("/boards", { params });
-    console.log("📋 게시글 목록:", res.data);
-    return res.data;
-  } catch (error) {
-    console.error("❌ 게시글 목록 조회 실패:", error);
-    message.error("게시글 목록 조회 실패");
-  }
+export const fetchBoardList = async (params) => {
+  const response = await axiosInstance.get("/boards", { params });
+  return response.data;  // ✅ res.data만 반환
+};
+
+export const fetchAdminBoardList = async (page, size, keyword) => {
+  return await axiosInstance.get("/boards/admin", {
+    params: { page, size, keyword },
+  });
 };
 
 /**

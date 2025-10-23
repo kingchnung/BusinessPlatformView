@@ -1,48 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, message, Tag, Select, Input, Row, Col } from "antd";
+import {
+    Table,
+    Button,
+    Space,
+    message,
+    Tag,
+    Select,
+    Input,
+    Row,
+    Col,
+} from "antd";
 import { useNavigate } from "react-router-dom";
-import { getBoardList } from "../../../api/groupware/boardApi";
+import { fetchBoardList } from "../../../api/groupware/boardApi"; // ✅ axios API
 
 const { Search } = Input;
+const { Option } = Select;
 
 const BoardList = () => {
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedType, setSelectedType] = useState("ALL");
     const [keyword, setKeyword] = useState("");
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
+
     const navigate = useNavigate();
 
-    // ✅ 데이터 로드
-    const fetchBoards = async (type = "ALL", keyword = "") => {
+    /** 최초 렌더링 시 1페이지 로드 */
+    useEffect(() => {
+        // ✅ page=1, size=10만 명확히 넘기고 나머지 기본값으로 처리
+        loadBoards(1, 10, keyword, selectedType);
+    }, []);
+
+
+    /** ✅ 서버에서 게시글 목록 로드 */
+    const loadBoards = async (page = 1, size = 10, keyword = "", type = "ALL") => {
         try {
             setLoading(true);
-            const allData = (await getBoardList(type)) || [];
-            let filtered = [...allData];
 
-            // 타입 필터
-            if (type !== "ALL") {
-                filtered = filtered.filter((b) => b.boardType === type);
-            }
+            // ✅ undefined 방어 (문자열 "undefined"로 변환되지 않도록)
+            const safePage = Number(page) || 1;
+            const safeSize = Number(size) || 10;
 
-            // 검색 필터
-            if (keyword.trim()) {
-                const lower = keyword.toLowerCase();
-                filtered = filtered.filter(
-                    (b) =>
-                        b.title?.toLowerCase().includes(lower) ||
-                        b.content?.toLowerCase().includes(lower) ||
-                        b.authorName?.toLowerCase().includes(lower)
-                );
-            }
-
-            // 공지사항 우선 정렬
-            filtered.sort((a, b) => {
-                if (a.boardType === "NOTICE" && b.boardType !== "NOTICE") return -1;
-                if (a.boardType !== "NOTICE" && b.boardType === "NOTICE") return 1;
-                return b.boardNo - a.boardNo;
+            const data = await fetchBoardList({
+                page: safePage,
+                size: safeSize,
+                keyword: keyword ?? "",
+                type: type ?? "ALL",
             });
 
-            setBoards(filtered);
+            console.log("📦 서버 응답:", data);
+
+            setBoards(data?.dtoList ?? []);
+            setPagination({
+                current: data?.pageRequestDTO?.page ?? safePage,
+                pageSize: data?.pageRequestDTO?.size ?? safeSize,
+                total: data?.totalCount ?? 0,
+            });
         } catch (err) {
             console.error("❌ 게시글 목록 불러오기 실패:", err);
             message.error("게시글 목록 불러오기 실패");
@@ -51,21 +68,24 @@ const BoardList = () => {
         }
     };
 
-    useEffect(() => {
-        fetchBoards();
-    }, []);
-
+    /** ✅ 게시판 유형 변경 */
     const handleTypeChange = (value) => {
         setSelectedType(value);
-        fetchBoards(value, keyword);
+        loadBoards(1, pagination.pageSize, keyword, value);
     };
 
+    /** ✅ 검색 */
     const handleSearch = (value) => {
         setKeyword(value);
-        fetchBoards(selectedType, value);
+        loadBoards(1, pagination.pageSize, value, selectedType);
     };
 
-    // ✅ 컬럼 정의
+    /** ✅ 페이지 변경 (AntD Table pagination 연동) */
+    const handleTableChange = (page, pageSize) => {
+        loadBoards(page, pageSize, keyword, selectedType);
+    };
+
+    /** ✅ 컬럼 정의 */
     const columns = [
         {
             title: "번호",
@@ -73,6 +93,8 @@ const BoardList = () => {
             key: "boardNo",
             align: "center",
             width: 80,
+            render: (_, __, index) =>
+                (pagination.current - 1) * pagination.pageSize + (index + 1),
         },
         {
             title: "분류",
@@ -110,34 +132,28 @@ const BoardList = () => {
             dataIndex: "createdAt",
             key: "createdAt",
             width: 150,
-            render: (text) => text?.substring(0, 10),
+            render: (text) => text ? text.substring(0, 10) : "-",
         },
     ];
-
-    // ✅ 행 스타일 지정 (공지사항 강조)
-    const rowClassName = (record) => {
-        if (record.boardType === "NOTICE") {
-            return "notice-row"; // 스타일 클래스
-        }
-        return "";
-    };
 
     return (
         <div style={{ padding: 24 }}>
             <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                 <Col>
                     <Space>
+                        {/* ✅ 게시판 유형 선택 */}
                         <Select
                             value={selectedType}
                             onChange={handleTypeChange}
                             style={{ width: 150 }}
                         >
-                            <Select.Option value="ALL">전체 게시판</Select.Option>
-                            <Select.Option value="NOTICE">공지사항</Select.Option>
-                            <Select.Option value="GENERAL">일반게시판</Select.Option>
-                            <Select.Option value="SUGGESTION">익명건의</Select.Option>
+                            <Option value="ALL">전체 게시판</Option>
+                            <Option value="NOTICE">공지사항</Option>
+                            <Option value="GENERAL">일반게시판</Option>
+                            <Option value="SUGGESTION">익명건의</Option>
                         </Select>
 
+                        {/* ✅ 검색 */}
                         <Search
                             placeholder="제목, 내용, 작성자 검색"
                             allowClear
@@ -155,25 +171,34 @@ const BoardList = () => {
                 </Col>
             </Row>
 
+            {/* ✅ 테이블 */}
             <Table
                 rowKey="boardNo"
                 columns={columns}
                 dataSource={boards}
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                pagination={{
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
+                    showSizeChanger: true,
+                    onChange: handleTableChange,
+                }}
                 rowClassName={(record) =>
                     record.boardType === "NOTICE" ? "notice-row" : ""
                 }
                 style={{ borderRadius: 8 }}
             />
+
+            {/* ✅ 공지사항 행 강조 */}
             <style>
                 {`
-                    .notice-row > td {
-                        background-color: #f0f5ff !important; 
-                        font-weight: 500 !important;
-                        transition: background-color 0.2s ease;
-                    }
-                `}
+          .notice-row > td {
+            background-color: #f0f5ff !important;
+            font-weight: 500 !important;
+            transition: background-color 0.2s ease;
+          }
+        `}
             </style>
         </div>
     );

@@ -15,7 +15,7 @@ const BoardForm = () => {
       console.log("📤 게시글 전송 데이터:", values);
       await createBoard(values);
       message.success("게시글이 등록되었습니다.");
-      navigate("/boards"); // ✅ 목록 페이지로 이동
+      navigate("/boards");
     } catch (e) {
       console.error("게시글 등록 실패:", e);
       message.error("게시글 등록 실패");
@@ -56,14 +56,11 @@ const BoardForm = () => {
         </Form.Item>
 
         <Form.Item>
-          {/* ✅ onClick → htmlType="submit" 으로 변경 */}
+          {/* ✅ htmlType="submit" 로 변경해야 onFinish 자동 호출됨 */}
           <Button type="primary" htmlType="submit" loading={loading}>
             등록
           </Button>
-          <Button
-            style={{ marginLeft: 8 }}
-            onClick={() => navigate("/boards")}
-          >
+          <Button style={{ marginLeft: 8 }} onClick={() => navigate("/boards")}>
             취소
           </Button>
         </Form.Item>
