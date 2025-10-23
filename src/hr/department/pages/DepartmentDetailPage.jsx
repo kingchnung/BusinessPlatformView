@@ -26,7 +26,12 @@ const DepartmentDetailPage = () => {
 
         // 부서 내 직원 목록
         const empRes = await axiosInstance.get(`/employees/byDepartment/${deptId}`);
-        setEmployees(empRes.data);
+
+        // ✅ 퇴직자 제외 (status가 RETIRED인 직원 제거)
+        const filtered = (empRes.data || []).filter(
+        (emp) => (emp.status || "").toUpperCase() !== "RETIRED"
+      );
+        setEmployees(filtered);
       } catch (err) {
         console.error(err);
         message.error("부서 상세 정보를 불러오지 못했습니다.");

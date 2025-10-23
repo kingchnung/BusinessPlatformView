@@ -8,12 +8,15 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import axiosInstance from "../../../common/axiosInstance";
+import { useSelector } from "react-redux";
 
 const EmployeeDetailPage = () => {
   const { empId } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { user } = useSelector((state) => state.auth);
+  const userRole = user?.roleName || user?.roles?.[0] || "";
 
   // 🔹 데이터 로드
   useEffect(() => {
@@ -79,14 +82,15 @@ const EmployeeDetailPage = () => {
             목록으로
           </Button>
           <div>
-            {/* ✅ 관리자 이상만 노출되는 수정 버튼 (삭제 제거됨) */}
+            {(userRole === "ROLE_MANAGER" || userRole === "ROLE_CEO" || userRole === "sys:admin") && (
             <Button
               type="primary"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/hr/employee/edit/${empId}`)}
+              onClick={() => navigate(`/hr/employee/cards/edit/${empId}`)}
             >
               수정
             </Button>
+            )}
           </div>
         </div>
       }

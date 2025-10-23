@@ -49,7 +49,7 @@ const EmployeeCardListPage = () => {
         <div style={{margin:20}}>
         <OverviewStats employees={employeeList} />
       </div>
-      
+    
       <Card
         title="인사카드 조회"
         style={{
