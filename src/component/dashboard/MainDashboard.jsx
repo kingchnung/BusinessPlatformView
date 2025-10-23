@@ -2,12 +2,14 @@ import React from "react";
 import { Row, Col, Card } from "antd";
 import NoticeBoardCard from "./NoticeBoardCard";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import MyInfoCard from "../../hr/employee/components/MyInfoCard";
 
 
 
 const MainDashboard = () => {
 
-  const navigate = useNavigate();
+  const { userInfo } = useSelector((state) => state.auth);
 
   return (
     <div style={{ height: "100%", padding: "8px" }}>
@@ -38,15 +40,7 @@ const MainDashboard = () => {
 
         {/* 내 정보 */}
         <Col xs={24} md={4}>
-          <Card
-            title="👤 내 정보"
-            bordered={false}
-            style={{ borderRadius: "12px", height: "100%", cursor:"pointer", }}
-            onClick={()=>navigate("/hr/employee/cards/edit")}
-
-          >
-            이름, 직급, 부서, 입사일, 근속연수
-          </Card>
+          <MyInfoCard />
         </Col>
       </Row>
 

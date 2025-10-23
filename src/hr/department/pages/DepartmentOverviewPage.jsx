@@ -68,17 +68,27 @@ const DepartmentOverviewPage = () => {
     departments.forEach(dept => {
       const deptEmps = employeesByDept.get(dept.deptId) || [];
       
-      const activeEmps = deptEmps.filter(e => String(e.status).toUpperCase() !== 'RETIRED');
-      const onBreak = activeEmps.filter(e => String(e.status).toUpperCase() === 'BREAK').length;
-      const retired = deptEmps.length - activeEmps.length;
-      
-      // 팀장 찾기 (positionCode가 14인 직원)
-      const teamLead = activeEmps.find(e => e.positionCode === 14);
+      // ✅ 퇴직자 제외 (null 방지)
+    const activeEmps = deptEmps.filter(e => (e.status || '').toUpperCase() !== 'RETIRED');
+
+    // ✅ 휴직자 수
+    const onBreak = activeEmps.filter(e => (e.status || '').toUpperCase() === 'BREAK').length;
+
+    // ✅ 퇴직자 수
+    const retired = deptEmps.filter(e => (e.status || '').toUpperCase() === 'RETIRED').length;
+
+    // ✅ 현재 근무자 = 재직자 중 휴직자 제외
+    const currentStaff = activeEmps.filter(e => (e.status || '').toUpperCase() === 'ACTIVE').length;
+    
+    const activeCountWithBreak = activeEmps.length;
+    // ✅ 팀장 찾기 (positionCode === 14)
+    const teamLead = activeEmps.find(e => e.positionCode === 2);
 
       statsMap[dept.deptId] = {
-        currentStaff: activeEmps.length - onBreak,
+        currentStaff,
         breakCount: onBreak,
         retiredCount: retired,
+        activeCountWithBreak,
         teamLeadName: teamLead ? teamLead.empName : '-',
       
       };
@@ -125,10 +135,13 @@ const DepartmentOverviewPage = () => {
     { title: "정원 대비", key: "capacity", width: 150,
       render: (_, record) => {
         if (record.deptCode % 10 === 0 ) return '-';
-        const percent = (record.employeeCount / TEAM_CAPACITY) * 100;
+        const stats = departmentStats[record.deptId];
+        const activeCountWithBreak = stats ? stats.activeCountWithBreak : 0;
+
+        const percent = (activeCountWithBreak / TEAM_CAPACITY) * 100;
         return (
           <div style={{ textAlign: 'center' }}>
-            <span>{`${record.employeeCount} / ${TEAM_CAPACITY}명`}</span>
+            <span>{`${activeCountWithBreak} / ${TEAM_CAPACITY}명`}</span>
             <Progress percent={percent} showInfo={false} size="small" />
           </div>
         );

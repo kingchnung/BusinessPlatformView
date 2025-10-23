@@ -1,7 +1,8 @@
 import { Card, Row, Col, Statistic } from "antd";
+import dayjs from "dayjs";
 
 /**
- * 📊 OverviewStats - 인사카드 상단용 요약 통계
+ * 📊 OverviewStats - 인사카드 상단용 요약 통계 (간략형)
  * @param {object[]} employees - 전체 직원 목록
  */
 const OverviewStats = ({ employees = [] }) => {
@@ -15,7 +16,14 @@ const OverviewStats = ({ employees = [] }) => {
     (emp) => String(emp.status || "").toUpperCase() === "BREAK"
   ).length; // 휴직 인원
   const currentStaff = totalActive - totalOnBreak; // 현재 근무중
-  const newHires = 0; // 신규입사자 (추후 계산 로직 추가 가능)
+
+  // ✅ 신규 입사자 (최근 30일 기준)
+  const today = dayjs();
+  const newHires = activeEmployees.filter(
+    (emp) =>
+      emp.startDate &&
+      today.diff(dayjs(emp.startDate), "day") <= 30
+  ).length;
 
   return (
     <Card
@@ -38,7 +46,7 @@ const OverviewStats = ({ employees = [] }) => {
           <Statistic title="현재원" value={currentStaff} suffix="명" />
         </Col>
         <Col xs={12} sm={6} md={6}>
-          <Statistic title="신규 입사자" value={newHires} suffix="명" />
+          <Statistic title="신규 입사자 (최근 30일)" value={newHires} suffix="명" />
         </Col>
       </Row>
     </Card>
