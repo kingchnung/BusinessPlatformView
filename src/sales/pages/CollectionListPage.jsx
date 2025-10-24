@@ -20,7 +20,6 @@ import {
 import {
   PlusOutlined,
   ExclamationCircleFilled,
-  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "../../layouts/MainLayout";
@@ -43,6 +42,13 @@ const { RangePicker } = DatePicker;
 
 
 const receivablesColumns = (onClientClick) => [
+  {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => index + 1,
+    },
   {
     title: "사업자번호",
     dataIndex: "clientId",
@@ -80,7 +86,16 @@ const receivablesColumns = (onClientClick) => [
 ];
 
 
-const collectionListColumns = (showCollectionModal, showDeleteConfirmModal) => [
+const collectionListColumns = (showCollectionModal, showDeleteConfirmModal, pagination) => [
+  {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => {
+        return (pagination.current - 1) * pagination.pageSize + index + 1;
+      },
+    },
   {
     title: "수금번호",
     dataIndex: "collectionId",
@@ -158,6 +173,8 @@ const CollectionListPage = () => {
   const receivables = useSelector((s) => s.salesStatus.receivables);
   const {
     list: collections,
+    pagination,
+    loading,
     pagination: collectionPagination,
     searchParams: collectionSearchParams,
     selectedKeys: selectedCollectionKeys,
@@ -479,7 +496,7 @@ const CollectionListPage = () => {
               }}
               rowKey={(record) => record.collectionId}
               dataSource={collections}
-              columns={collectionListColumns(showCollectionModal, showDeleteConfirmModal)}
+              columns={collectionListColumns(showCollectionModal, showDeleteConfirmModal, pagination)}
               pagination={false}
             />
             <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
@@ -517,7 +534,6 @@ const CollectionListPage = () => {
     },
   ];
 
-  // --- 렌더링 ---
   return (
     <MainLayout>
       <h2 style={{ fontSize: 24, marginBottom: 20 }}>수금 관리</h2>

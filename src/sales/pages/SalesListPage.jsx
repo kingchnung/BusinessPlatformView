@@ -1,4 +1,3 @@
-// src/pages/sales/SalesListPage.jsx
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -40,6 +39,8 @@ const SalesListPage = () => {
 
   const {
     list: sales,
+    pagination,
+    loading,
     pagination: salesPagination,
     searchParams: salesSearchParams, 
     selectedKeys: selectedSalesKeys,
@@ -223,6 +224,15 @@ const SalesListPage = () => {
 
   const columns = [
     {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => {
+        return (pagination.current - 1) * pagination.pageSize + index + 1;
+      },
+    },
+    {
       title: "판매번호",
       dataIndex: "salesId",
       key: "salesId",
@@ -255,7 +265,10 @@ const SalesListPage = () => {
       dataIndex: "salesAmount",
       key: "salesAmount",
       align: "center",
-      render: (amount) => (amount != null ? `${Number(amount).toLocaleString("ko-KR")} 원` : "-"),
+      render: (amount) => 
+        (amount != null 
+          ? `${Math.trunc(Number(amount)).toLocaleString("ko-KR")} 원` 
+          : "-"),
     },
     {
       title: "계산서",

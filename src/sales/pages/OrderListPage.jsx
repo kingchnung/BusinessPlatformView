@@ -29,6 +29,8 @@ const OrderListPage = () => {
 
   const {
     list: orders,
+    pagination,
+    loading,
     pagination: orderPagination,
     searchParams: orderSearchParams,
     selectedKeys: selectedOrderKeys,
@@ -215,6 +217,15 @@ const OrderListPage = () => {
 
   const columns = [
     {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => {
+        return (pagination.current - 1) * pagination.pageSize + index + 1;
+      },
+    },
+    {
       title: "주문번호",
       dataIndex: "orderId",
       key: "orderId",
@@ -235,7 +246,10 @@ const OrderListPage = () => {
       dataIndex: "orderAmount",
       key: "orderAmount",
       align: "center",
-      render: (amount) => amount ? `${amount.toLocaleString('ko-KR')} 원` : '-'
+      render: (amount) => 
+        (amount != null // 0도 표시되도록
+          ? `${Math.trunc(Number(amount)).toLocaleString('ko-KR')} 원` 
+          : '-')
     },
     {
       title: "주문상태",
