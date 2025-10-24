@@ -2,6 +2,5 @@ export const mainMenuConfig = [
   { key: "/", label: "메인", path: "/" },
   { key: "hr", label: "인사", path: "/hr"},
   { key: "sales", label: "영업", path: "/sales"},
-  // { key: "project", label: "프로젝트", path: "/project" },
-  // { key: "groupware", label: "전자결재", path: "/approvals" },
+  { key: "approvals", label: "전자결재", path: "/approvals"},
 ];

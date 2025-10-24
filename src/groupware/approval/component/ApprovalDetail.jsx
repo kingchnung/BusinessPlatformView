@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Descriptions, Tag, List, Card, message, Button, Divider, Space, Typography, Empty, Modal, Input, } from "antd";
-import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, } from "@ant-design/icons";
+import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, DownloadOutlined, EyeOutlined, } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { approveDocument, getApprovalDetail, rejectDocument, } from "../../../api/groupware/approvalApi";
+import { approveDocument, downloadPdf, getApprovalDetail, previewPdf, rejectDocument, } from "../../../api/groupware/approvalApi";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+
 
 const { Title, Text } = Typography;
 
@@ -31,11 +35,15 @@ const ApprovalDetail = ({ docId }) => {
     const { user: currentUser } = useSelector((state) => state.auth);
     const [isCurrentUserTheApprover, setIsCurrentUserTheApprover] = useState(false);
 
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewFile, setPreviewFile] = useState(null);
+    const [numPages, setNumPages] = useState(0);
+
     /* ===========================================================
         ✅ 문서 상세조회 및 현재 결재자 확인
     =========================================================== */
     useEffect(() => {
-        if (!docId || !currentUser) return; // docId나 currentUser가 없으면 실행하지 않음
+        if (!docId || !currentUser) return;
 
         const fetchDetail = async () => {
             try {
@@ -43,28 +51,57 @@ const ApprovalDetail = ({ docId }) => {
                 setDetail(res);
                 console.log("📄 [상세조회 성공]", res);
 
-                // ✅ [로직 추가] 문서 상태가 '진행중'일 때, 현재 사용자가 결재자인지 확인
-                if (res.status === 'IN_PROGRESS') {
-                    // 결재 라인에서 현재 'PENDING' 상태인 단계를 찾습니다.
-                    const currentStep = res.approvalLine.find(step => step.decision === 'PENDING');
+                // 🔹 안전 가드 추가
+                if (
+                    res.status === "IN_PROGRESS" &&
+                    Array.isArray(res.approvalLine) &&
+                    res.approvalLine.length > 0 &&
+                    typeof res.currentApproverIndex === "number" &&
+                    res.currentApproverIndex < res.approvalLine.length
+                ) {
+                    const currentStep = res.approvalLine[res.currentApproverIndex];
 
-                    // 현재 단계의 결재자 ID와 로그인한 사용자의 username(사번)이 일치하는지 확인
-                    if (currentStep && currentStep.approverId === currentUser.username) {
-                        setIsCurrentUserTheApprover(true);
-                        console.log("✅ 당신은 현재 결재자입니다.");
+                    const equalsIgnoreCaseTrim = (a, b) => {
+                        if (!a || !b) return false;
+                        return a.trim().toLowerCase() === b.trim().toLowerCase();
+                    };
+
+                    const isApprover =
+                        currentStep &&
+                        (
+                            equalsIgnoreCaseTrim(currentStep.approverId, currentUser.username) ||
+                            equalsIgnoreCaseTrim(currentStep.approverId, currentUser.empNo) ||
+                            (currentStep.approverId === "-" &&
+                                equalsIgnoreCaseTrim(currentStep.approverName, currentUser.empName))
+                        );
+
+                    setIsCurrentUserTheApprover(isApprover);
+
+                    if (isApprover) {
+                        console.log("✅ 현재 결재자:", currentUser.empName);
                     } else {
-                        setIsCurrentUserTheApprover(false);
-                        console.log("🚫 당신은 현재 결재자가 아닙니다.");
+                        console.log("🚫 현재 결재자가 아닙니다.");
+                        console.log("🔍 비교값 →", {
+                            approverId: currentStep.approverId,
+                            approverName: currentStep.approverName,
+                            username: currentUser.username,
+                            empNo: currentUser.empNo,
+                            empName: currentUser.empName,
+                            currentApproverIndex: res.currentApproverIndex,
+                        });
                     }
+                } else {
+                    console.warn("⚠️ 결재선 정보가 비어 있거나 currentApproverIndex가 유효하지 않습니다.");
+                    setIsCurrentUserTheApprover(false);
                 }
-
             } catch (err) {
                 console.error("❌ 문서 상세조회 실패:", err);
                 message.error("문서 정보를 불러올 수 없습니다.");
             }
         };
+
         fetchDetail();
-    }, [docId, currentUser]); // currentUser가 로드된 후에도 이 로직이 실행되도록 의존성 배열에 추가
+    }, [docId, currentUser]);
 
     // detail이 로드된 후 로그 출력
     useEffect(() => {
@@ -140,6 +177,18 @@ const ApprovalDetail = ({ docId }) => {
     };
 
     /* ===========================================================
+     ✅ 미리보기 핸들러
+  =========================================================== */
+    const handlePreview = (file) => {
+        setPreviewFile(file);
+        setPreviewVisible(true);
+    };
+
+    const handleDownload = (file) => {
+        window.open(`/api/upload/download/${file.id}`, "_blank");
+    };
+
+    /* ===========================================================
        ✅ null-safe 렌더링 가드
     =========================================================== */
     if (!currentUser) {
@@ -173,28 +222,35 @@ const ApprovalDetail = ({ docId }) => {
                     marginBottom: 16,
                 }}
             >
-                <Space>
-                    <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => navigate("/approvals")}
-                        type="default"
-                        style={{
-                            borderRadius: 6,
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                        }}
-                    >
-                        목록으로
-                    </Button>
-                    <Title
-                        level={4}
-                        style={{ margin: 0, color: "#1f1f1f", letterSpacing: "-0.2px" }}
-                    >
-                        문서 상세보기
-                    </Title>
-                </Space>
                 <Tag color={statusColors[detail.status]} style={{ fontSize: 14 }}>
                     {detail.status}
                 </Tag>
+
+                <Space>
+                    <Button
+                        icon={<EyeOutlined />}
+                        onClick={() => previewPdf(detail.docId || detail.id)}
+                        size="middle"
+                        style={{
+                            borderRadius: 6,
+                            fontWeight: 500,
+                        }}
+                    >
+                        PDF 미리보기
+                    </Button>
+                    <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        onClick={() => downloadPdf(detail.docId || detail.id)}
+                        size="middle"
+                        style={{
+                            borderRadius: 6,
+                            fontWeight: 500,
+                        }}
+                    >
+                        PDF 다운로드
+                    </Button>
+                </Space>
             </div>
 
             {/* ✅ 문서 기본정보 */}
@@ -299,15 +355,13 @@ const ApprovalDetail = ({ docId }) => {
                                 actions={[
                                     <a
                                         key="preview"
-                                        href={`http://localhost:8080/api/upload/preview/${file.id}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                        onClick={() => handlePreview(file)}
                                     >
                                         미리보기
                                     </a>,
                                     <a
                                         key="download"
-                                        href={`http://localhost:8080/api/upload/download/${file.id}`}
+                                        onClick={() => handleDownload(file)}
                                     >
                                         다운로드
                                     </a>,
@@ -400,6 +454,84 @@ const ApprovalDetail = ({ docId }) => {
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
                     />
+                </Modal>
+
+                {/* ✅ 미리보기 모달 */}
+                <Modal
+                    open={previewVisible}
+                    onCancel={() => setPreviewVisible(false)}
+                    footer={null}
+                    width="50%"
+                    style={{ top: 20 }}
+                    bodyStyle={{
+                        padding: "0 24px 24px 24px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                    }}
+                >
+                    {previewFile ? (
+                        <>
+                            <h3 style={{
+                                textAlign: "center",
+                                margin: "16px 0",
+                                fontWeight: 600,
+                                fontSize: "16px",
+                                color: "#222",
+                            }}>{previewFile.originalName}</h3>
+
+                            {previewFile.contentType?.startsWith("image/") ? (
+                                <img
+                                    src={`http://localhost:8080/api/attachments/preview/${previewFile.id}?_t=${Date.now()}`}
+                                    alt={previewFile.originalName}
+                                    style={{
+                                        width: "100%",
+                                        maxHeight: "80vh",
+                                        objectFit: "contain",
+                                        borderRadius: 8,
+                                    }}
+                                />
+                            ) : previewFile.contentType === "application/pdf" ? (
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        maxHeight: "75vh",
+                                        overflowY: "auto", // 🔥 내부만 스크롤 가능
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        padding: "8px 0",
+                                    }}
+                                >
+                                    <Document
+                                        file={`http://localhost:8080/api/attachments/preview/${previewFile.id}`}
+                                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                                        loading={<p>PDF 불러오는 중...</p>}
+                                        error={<p>⚠️ PDF를 불러올 수 없습니다.</p>}
+                                    >
+                                        {/* ✅ 모든 페이지 반복 렌더링 */}
+                                        {Array.from(new Array(numPages), (el, index) => (
+                                            <Page
+                                                key={`page_${index + 1}`}
+                                                pageNumber={index + 1}
+                                                width={800} // 너비 조정
+                                                renderTextLayer={false}
+                                                renderAnnotationLayer={true}
+                                            />
+                                        ))}
+                                    </Document>
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "50px 0", color: "#999" }}>
+                                    <p>⚠️ 미리보기를 지원하지 않는 파일 형식입니다.</p>
+                                    <Button type="primary" onClick={() => handleDownload(previewFile)}>
+                                        다운로드
+                                    </Button>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <p>파일 정보를 불러오는 중...</p>
+                    )}
                 </Modal>
             </div>
         </div>

@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getDepartments } from "../../department/slice/departmentSlice";
 import { getEmployees } from "../slice/hrSlice";
 import OrgChartTreeView from "../components/OrgChartTreeView";
-
+import OverviewStats from "../../department/components/OverviewStats";
 /**
  * ==========================================
  * ✅ OrgChartPage (트리형 조직도 페이지)
@@ -68,6 +68,7 @@ const OrgChartPage = () => {
 
   return (
     <Spin spinning={isLoading} tip="조직도 불러오는 중...">
+      <OverviewStats employees={employees}/>
       <Card
         title="조직도 조회"
         style={{

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Table, message, Card, Spin, Input, Modal, Button, Space } from "antd";
-import { deleteDocument, getApprovalList } from "../../../api/groupware/approvalApi";
+import { Table, message, Card, Spin, Tag } from "antd";
+import { getApprovalList } from "../../../api/groupware/approvalApi";
 import { useNavigate } from "react-router-dom";
 
-const ApprovalList = ({ refreshKey = 0 }) => {
+const ApprovalList = ({ refreshKey = 0, status = "ALL" }) => {
   const [loading, setLoading] = useState(false);
   const [approvals, setApprovals] = useState([]);
   const [pagination, setPagination] = useState({
@@ -12,30 +12,18 @@ const ApprovalList = ({ refreshKey = 0 }) => {
     total: 0,
   });
 
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    docId: null,
-    reason: "",
-  });
-
   const navigate = useNavigate();
 
   /**
    * ✅ 결재문서 목록 로드
-   * 백엔드 응답 구조:
-   * {
-   *   dtoList: [...],
-   *   pageRequestDTO: { page: 1, size: 10 },
-   *   totalCount: 23,
-   *   prev: false, next: true
-   * }
    */
   const loadApprovals = async (page = 1, size = 10) => {
     try {
       setLoading(true);
-      const res = await getApprovalList(page, size);
+      const res = await getApprovalList(page, size, status);
 
       if (res && res.dtoList) {
+        // 삭제된 문서는 제외 (관리자만 볼 수 있음)
         const filtered = res.dtoList.filter((doc) => doc.status !== "DELETED");
 
         setApprovals(filtered);
@@ -58,39 +46,13 @@ const ApprovalList = ({ refreshKey = 0 }) => {
 
   /** ✅ 최초 로드 + refreshKey 변경 시 재요청 */
   useEffect(() => {
-    loadApprovals(pagination.current, pagination.pageSize);
+    loadApprovals(1, pagination.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [refreshKey, status]);
 
   /** ✅ 페이지 변경 시 호출 */
   const handleTableChange = (paginationConfig) => {
     loadApprovals(paginationConfig.current, paginationConfig.pageSize);
-  };
-
-  /** ✅ 삭제 버튼 클릭 시 모달 오픈 */
-  const openDeleteModal = (docId) => {
-    setDeleteModal({ open: true, docId, reason: "" });
-  };
-
-  /** ✅ 삭제 실행 */
-  const handleDelete = async () => {
-    if (!deleteModal.reason.trim()) {
-      message.warning("삭제 사유를 입력해주세요.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await deleteDocument(deleteModal.docId, deleteModal.reason);
-      message.success("문서가 논리적으로 삭제되었습니다.");
-      setDeleteModal({ open: false, docId: null, reason: "" });
-      loadApprovals(pagination.current, pagination.pageSize);
-    } catch (err) {
-      console.error("❌ 문서 삭제 실패:", err);
-      message.error("문서 삭제 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   /** ✅ 컬럼 정의 */
@@ -121,15 +83,36 @@ const ApprovalList = ({ refreshKey = 0 }) => {
       key: "status",
       align: "center",
       render: (status) => {
+        const statusLabel = {
+          DRAFT: "임시저장",
+          IN_PROGRESS: "결재 대기",
+          APPROVED: "승인 완료",
+          REJECTED: "반려됨",
+          DELETED: "삭제됨",
+        };
         const color =
-          status === "IN_PROGRESS"
-            ? "orange"
+          status === "DRAFT"
+            ? "gold"
+            : status === "IN_PROGRESS"
+            ? "blue"
             : status === "APPROVED"
-              ? "green"
-              : status === "REJECTED"
-                ? "red"
-                : "gray";
-        return <span style={{ color, fontWeight: 600 }}>{status}</span>;
+            ? "green"
+            : status === "REJECTED"
+            ? "volcano"
+            : status === "DELETED"
+            ? "gray"
+            : "default";
+        return (
+          <Tag
+            color={color}
+            style={{
+              fontWeight: 600,
+              opacity: status === "DELETED" ? 0.6 : 1,
+            }}
+          >
+            {statusLabel[status] || status}
+          </Tag>
+        );
       },
     },
     {
@@ -152,27 +135,6 @@ const ApprovalList = ({ refreshKey = 0 }) => {
       render: (date) =>
         date ? new Date(date).toLocaleDateString("ko-KR") : "-",
     },
-    {
-      title: "관리",
-      key: "actions",
-      align: "center",
-      render: (_, record) => {
-        const deletable =
-          record.status === "DRAFT" || record.status === "REJECTED";
-        return (
-          <Space>
-            <Button
-              danger
-              size="small"
-              disabled={!deletable}
-              onClick={() => openDeleteModal(record.id)}
-            >
-              삭제
-            </Button>
-          </Space>
-        );
-      },
-    },
   ];
 
   return (
@@ -193,36 +155,6 @@ const ApprovalList = ({ refreshKey = 0 }) => {
           onChange={handleTableChange}
         />
       </Spin>
-      {/* ✅ 삭제 모달 */}
-      <Modal
-        title="🗑️ 문서 삭제 확인"
-        open={deleteModal.open}
-        onCancel={() => setDeleteModal({ open: false, docId: null, reason: "" })}
-        footer={null}
-      >
-        <p>정말로 이 문서를 삭제하시겠습니까?</p>
-        <Input.TextArea
-          rows={3}
-          placeholder="삭제 사유를 입력하세요 (예: 잘못 작성된 문서)"
-          value={deleteModal.reason}
-          onChange={(e) =>
-            setDeleteModal({ ...deleteModal, reason: e.target.value })
-          }
-        />
-        <div style={{ textAlign: "right", marginTop: 16 }}>
-          <Button
-            onClick={() =>
-              setDeleteModal({ open: false, docId: null, reason: "" })
-            }
-            style={{ marginRight: 8 }}
-          >
-            취소
-          </Button>
-          <Button danger type="primary" loading={loading} onClick={handleDelete}>
-            삭제
-          </Button>
-        </div>
-      </Modal>
     </Card>
   );
 };

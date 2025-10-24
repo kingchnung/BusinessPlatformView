@@ -1,7 +1,9 @@
 
 import { RouterProvider } from 'react-router-dom';
-import './App.css'
 import root from './router/root';
+import { Provider } from 'react-redux';
+import store from './store';
+
 import { message } from 'antd';
 
 // message 컴포넌트의 전역 설정을 추가합니다.
@@ -15,7 +17,9 @@ message.config({
 
 const App = () => {
   return (
-    <RouterProvider router={root} />
+    <Provider store={store}>
+      <RouterProvider router={root} />
+    </Provider>
   )
 };
 

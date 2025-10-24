@@ -1,0 +1,10 @@
+/* 관리자 전용 메뉴 색상 강조 */
+.admin-menu-label {
+  color: #ff7875 !important; /* 🔸 밝은 토마토색 (관리자 전용) */
+  font-weight: 600;          /* 약간 두껍게 */
+}
+
+/* 선택된 메뉴는 기본 다크테마 유지 */
+.ant-menu-dark .ant-menu-item-selected .admin-menu-label {
+  color: #ffffff !important;
+}

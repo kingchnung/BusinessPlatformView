@@ -12,7 +12,6 @@ const ApprovalDraftPage = () => {
   };
 
   return (
-    <MainLayout>
       <Row gutter={[24, 24]}>
         <Col span={24}>
           <ApprovalForm onUpdate={handleUpdate} />
@@ -21,7 +20,6 @@ const ApprovalDraftPage = () => {
           <ApprovalList refreshKey={refreshKey} />
         </Col>
       </Row>
-    </MainLayout>
   );
 };
 

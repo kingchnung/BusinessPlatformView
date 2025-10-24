@@ -45,7 +45,7 @@ const EmployeeDetail = ({ empId }) => {
   } = selectedEmployee;
 
   const handleEdit = () => {
-    navigate(`/hr/${empId}/edit`);
+    navigate(`/hr/employee/${empId}`);
   };
 
   const handleBack = () => {

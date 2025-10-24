@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, Input, Button, Typography, Form, message } from "antd";
 import { loginSuccess } from "../slice/authSlice";
 import { loginUser } from "../api/login/authApi";
+import { jwtDecode } from "jwt-decode";
 
 const { Title, Text } = Typography;
 
@@ -18,14 +19,24 @@ export default function Login() {
       // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
       const { user, token, refreshToken } = await loginUser(values);
 
+      const decoded = jwtDecode(token);
+      const userWithDept = {
+        ...user,
+        deptName: decoded.deptName || "소속 부서 미지정",
+        deptCode: decoded.deptCode || "-",
+        empName: decoded.empName || user.empName,
+        email: decoded.email || user.email,
+        username: decoded.username,
+      };
+
       // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      dispatch(loginSuccess({ user, token }));
+      localStorage.setItem("user", JSON.stringify(userWithDept));
+      dispatch(loginSuccess({ user: userWithDept, token }));
 
-      message.success(`${user.empName || user.username}님 환영합니다!`);
-      navigate("/"); // 메인 페이지로 이동
+      message.success(`${userWithDept.empName || userWithDept.username}님 환영합니다!`);
+      navigate("/main"); // 메인 페이지로 이동
 
     } catch (err) {
       message.error("아이디 또는 비밀번호가 올바르지 않습니다.", {err});
