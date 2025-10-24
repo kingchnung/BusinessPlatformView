@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import ClientModal from "../components/ClientModal";
+import { getHistory } from 'src/api/sales/historyApi';
 
 const { confirm } = Modal;
 const { Option } = Select;
