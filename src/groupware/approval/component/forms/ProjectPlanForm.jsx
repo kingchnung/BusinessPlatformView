@@ -51,7 +51,7 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
   };
 
   const addBudgetItem = () => {
-    update("budgetItems", [...(value.budgetItems || []), { category: "", amount: 0 }]);
+    update("budgetItems", [...(value.budgetItems || []), { itemName: "", amount: 0 }]);
   };
 
   const removeBudgetItem = (index) => {
@@ -62,11 +62,13 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
 
   // ✅ 총 예산 계산
   const totalBudget = useMemo(() => {
-    return (value.budgetItems || []).reduce(
-      (sum, b) => sum + (Number(b.amount) || 0),
-      0
-    );
-  }, [value.budgetItems]);
+  const sum = (value.budgetItems || []).reduce(
+    (sum, b) => sum + (Number(b.amount) || 0),
+    0
+  );
+  update("totalBudget", sum); 
+  return sum;
+}, [value.budgetItems]);
 
   return (
     <>
@@ -106,8 +108,8 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
         <TextArea
           rows={3}
           placeholder="프로젝트의 주요 목표를 입력하세요."
-          value={value.goal || ""}
-          onChange={(e) => update("goal", e.target.value)}
+          value={value.projectGoal || ""}
+          onChange={(e) => update("projectGoal", e.target.value)}
         />
       </Form.Item>
 
@@ -165,9 +167,9 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
             <Input
               placeholder="항목명 (예: 장비 구입비)"
               style={{ flex: 2 }}
-              value={item.category}
+              value={item.itemName}
               onChange={(e) =>
-                handleBudgetChange(index, "category", e.target.value)
+                handleBudgetChange(index, "itemName", e.target.value)
               }
             />
             <InputNumber
@@ -209,8 +211,8 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
         <TextArea
           rows={4}
           placeholder="프로젝트의 배경과 개요를 간략히 작성하세요."
-          value={value.summary || ""}
-          onChange={(e) => update("summary", e.target.value)}
+          value={value.projectOverview || ""}
+          onChange={(e) => update("projectOverview", e.target.value)}
         />
       </Form.Item>
 
@@ -218,8 +220,8 @@ const ProjectPlanForm = ({ value = {}, onChange, employeeOptions = [] }) => {
         <TextArea
           rows={3}
           placeholder="프로젝트 완료 후 기대되는 효과를 입력하세요."
-          value={value.effect || ""}
-          onChange={(e) => update("effect", e.target.value)}
+          value={value.expectedEffect || ""}
+          onChange={(e) => update("expectedEffect", e.target.value)}
         />
       </Form.Item>
     </>

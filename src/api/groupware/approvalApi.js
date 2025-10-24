@@ -112,11 +112,13 @@ export const draftApproval = async (data) => {
  */
 export const approveDocument = async (docId) => {
   try {
+    console.log("📤 승인 요청:", `/approvals/${docId}/approve`);
     const response = await axiosInstance.put(`/approvals/${docId}/approve`);
     message.success("승인 완료");
     console.log("✅ 승인 성공:", response.data);
     return response.data;
   } catch (error) {
+    console.error("❌ 승인 실패:", error);
     message.error("승인 처리 실패");
     handleApiError(error);
   }
@@ -127,11 +129,14 @@ export const approveDocument = async (docId) => {
  */
 export const rejectDocument = async (docId, reason) => {
   try {
-    const response = await axiosInstance.put(`/approvals/${docId}/reject`, { reason });
+    const payload = { reason: reason || "사유 없음" }; // ✅ JSON 객체로 감싸기
+    console.log("📤 반려 요청 payload:", payload);
+    const response = await axiosInstance.put(`/approvals/${docId}/reject`, payload);
     message.success("반려 처리 완료");
-    console.log("❌ 반려 성공:", response.data);
+    console.log("🔴 반려 성공:", response.data);
     return response.data;
   } catch (error) {
+    console.error("❌ 반려 실패:", error);
     message.error("반려 처리 실패");
     handleApiError(error);
   }
@@ -164,17 +169,46 @@ export const uploadFile = async (file, docId = null) => {
   }
 };
 
-/**
- * 8️⃣ 파일 미리보기 (새 창)
- */
 export const previewFileAxios = async (id) => {
-  const res = await axios.get(`http://localhost:8080/api/attachments/preview/${id}`, {
-    responseType: "blob", // ✅ 파일 스트림으로 받기
-  });
+  try {
+    const res = await axiosInstance.get(`/approvals/attachments/preview/${id}`, {
+      responseType: "blob", // ✅ 파일 스트림으로 받기
+    });
 
-  const blob = new Blob([res.data]);
-  const url = window.URL.createObjectURL(blob);
-  window.open(url); // 새 탭으로 미리보기
+    if (!res || !res.data) {
+      throw new Error("파일 데이터가 없습니다.");
+    }
+
+    // ✅ MIME 타입 자동 감지
+    const contentType = res.headers["content-type"] || "application/octet-stream";
+
+    // ✅ blob 생성
+    const blob = new Blob([res.data], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+
+    // ✅ PDF / 이미지 / 기타 형식별 처리
+    if (contentType.includes("pdf") || contentType.includes("image")) {
+      window.open(url, "_blank");
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers["content-disposition"]
+        ? decodeURIComponent(
+            res.headers["content-disposition"]
+              .split("filename=")[1]
+              ?.replaceAll('"', "") || "download"
+          )
+        : "download";
+      a.click();
+      a.remove();
+    }
+
+    // 브라우저 메모리 해제 (잠시 뒤)
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    console.error("❌ 미리보기 실패:", err);
+    message.error("파일 미리보기를 불러올 수 없습니다.");
+  }
 };
 
 /**
@@ -182,14 +216,34 @@ export const previewFileAxios = async (id) => {
  */
 export const downloadFile = async (id) => {
   try {
-    const response = await axiosInstance.get(`/attachments/download/${id}`, {
+    const res = await axiosInstance.get(`approvals/attachments/download/${id}`, {
       responseType: "blob",
     });
-    console.log("📥 파일 다운로드 성공:", response);
-    return response;
-  } catch (error) {
+
+    const contentType = res.headers["content-type"];
+    const blob = new Blob([res.data], { type: contentType });
+
+    const a = document.createElement("a");
+    const url = window.URL.createObjectURL(blob);
+
+    // ✅ 파일명 추출
+    const fileName = decodeURIComponent(
+      res.headers["content-disposition"]
+        ?.split("filename=")[1]
+        ?.replaceAll('"', "") || "download"
+    );
+
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    a.remove();
+
+    message.success("📥 파일 다운로드 완료");
+  } catch (err) {
+    console.error("❌ 다운로드 실패:", err);
     message.error("파일 다운로드 실패");
-    handleApiError(error);
   }
 };
 
