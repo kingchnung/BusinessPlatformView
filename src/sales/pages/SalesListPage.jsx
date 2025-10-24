@@ -29,7 +29,7 @@ import {
   clearSalesError,
 } from "../slice/salesSlice"; 
 import SalesModal from "../components/SalesModal";
-import { getHistory } from 'src/api/sales/historyApi';
+import { getHistory } from '../../api/historyApi';
 
 
 const { Option } = Select;

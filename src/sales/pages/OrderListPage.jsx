@@ -18,7 +18,7 @@ import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import OrderModal from "../components/OrderModal";
 import dayjs from 'dayjs';
 import { getOrder } from "../../api/sales/orderApi";
-import { getHistory } from 'src/api/sales/historyApi';
+import { getHistory } from '../../api/historyApi';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;

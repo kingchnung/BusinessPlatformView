@@ -36,7 +36,7 @@ import {
 import { fetchReceivablesSummary } from "../slice/salesStatusSlice";
 import CollectionModal from "../components/CollectionModal";
 import ClientLedgerModal from "../components/ClientLedgerModal";
-import { getHistory } from 'src/api/sales/historyApi';
+import { getHistory } from '../../api/historyApi';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;

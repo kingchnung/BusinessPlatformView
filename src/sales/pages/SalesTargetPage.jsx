@@ -5,7 +5,7 @@ import { fetchSalesTargets, deleteSalesTarget, deleteMultipleSalesTargets, setSe
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import SalesTargetModal from "../components/SalesTargetModal";
-import { getHistory } from 'src/api/sales/historyApi';
+import { getHistory } from '../../api/historyApi';
 
 const { Option } = Select;
 
