@@ -1,3 +1,7 @@
+/* ========================
+   달력 (CalendarCard) 스타일
+   ======================== */
+
 /* 달력 카드 외곽 */
 .calendarCard {
   border-radius: 12px;
@@ -5,122 +9,83 @@
   overflow: hidden;
 }
 
-/* 헤더 바 */
+/* ⭐️ 달력 헤더 바 ( < 연월 > 부분) ⭐️ */
 .calHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px 12px;
-  background: #f5f8ff;
-  border-bottom: 1px solid #eef2ff;
-}
-.calHeader .title {
-  font-weight: 700;
+  display: flex;         /* flex 컨테이너 설정 */
+  align-items: center;   /* 세로 중앙 정렬 */
+  justify-content: space-between; /* < 와 > 버튼을 양쪽 끝으로 */
+  padding: 8px 10px 12px; /* 내부 여백 */
+  background: #f5f8ff; /* 배경색 */
+  border-bottom: 1px solid #eef2ff; /* 하단 구분선 */
 }
 
-/* 셀 둥글게 & 호버 */
+/* ⭐️ 달력 헤더의 '연 월' Select들을 감싸는 div ⭐️ */
+.calHeader .titleFlex {
+  display: flex;         /* 내부 요소(Select 2개)를 가로로 배치 */
+  align-items: center;   /* 세로 중앙 정렬 */
+  gap: 8px;              /* 연도 Select와 월 Select 사이 간격 */
+  font-weight: 700;      /* 글자 두께 (기존 유지) */
+  justify-content: center; /* 연/월 Select 그룹을 가운데 정렬 (선택 사항) */
+  /* flex-grow: 1; */    /* 필요 시 주석 해제하여 남는 공간 채우기 */
+}
+
+/* AntD Mini Calendar 내부 셀 스타일 */
 .ant-picker-calendar-mini .ant-picker-calendar-date {
-  border-radius: 8px;
+  border-radius: 8px; /* 날짜 셀 둥글게 */
 }
 .ant-picker-calendar .ant-picker-cell-in-view:hover .ant-picker-calendar-date {
-  background: #f2f6ff;
+  background: #f2f6ff; /* 날짜 셀 호버 배경색 */
 }
-
-/* 오늘 표시 */
 .ant-picker-calendar .ant-picker-calendar-date-today {
-  border: 1px solid #4d78ff;
+  border: 1px solid #4d78ff; /* 오늘 날짜 테두리 */
 }
-
-/* 선택된 날짜(파란 배경, 흰 글자) */
 .ant-picker-calendar
   .ant-picker-cell-in-view.ant-picker-cell-selected
   .ant-picker-calendar-date {
-  background: #4d78ff;
-  color: #fff;
+  background: #4d78ff; /* 선택된 날짜 배경색 */
+  color: #fff; /* 선택된 날짜 글자색 */
 }
 
-/* 요일 헤더 살짝 톤다운 */
+/* AntD Mini Calendar 요일 헤더 스타일 */
 .ant-picker-calendar-mini .ant-picker-content th {
-  color: #7a849a;
+  color: #7a849a; /* 기본 요일 색상 */
   font-weight: 600;
 }
+.ant-picker-calendar-mini .ant-picker-content th:nth-child(7) { /* 한국 기준: 토요일 */
+  color: #3a6cff;
+  font-weight: 600;
+}
+.ant-picker-calendar-mini .ant-picker-content th:nth-child(1) { /* 한국 기준: 일요일 */
+  color: #d84a4a;
+  font-weight: 700;
+}
 
-/* 표 전체 경계선 제거해서 미니멀하게 */
+/* AntD Mini Calendar 전체 테두리 제거 */
 .ant-picker-calendar-mini .ant-picker-panel {
   border: none;
 }
 
-/* 카드 및 헤더 모양 */
-.calendarCard {
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-.calHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px 12px;
-  background: #f5f8ff;
-  border-bottom: 1px solid #eef2ff;
-}
-.calHeader .titleFlex {
-  display: flex;
-  align-items: center;
-  font-weight: 700;
-}
 
-/* 셀 둥글게 & 호버 */
-.ant-picker-calendar-mini .ant-picker-calendar-date {
-  border-radius: 8px;
-}
-.ant-picker-calendar .ant-picker-cell-in-view:hover .ant-picker-calendar-date {
-  background: #f2f6ff;
-}
+/* ========================
+   페이지 헤더 (제목 + 탭) 스타일
+   ======================== */
 
-/* 요일 헤더 색상: 월~일 순서(ko-KR) 기준
-   - 토요일(6번째), 일요일(7번째) 색상 지정
-   * 만약 Sun-first 로케일이라면 nth-child(1)=일, nth-child(7)=토로 바꿔주세요. */
-.ant-picker-calendar-mini .ant-picker-content th:nth-child(7) {
-  color: #3a6cff; /* 토요일 */
-  font-weight: 600;
-}
-.ant-picker-calendar-mini .ant-picker-content th:nth-child(1*) {
-  color: #d84a4a; /* 일요일 */
-  font-weight: 700;
-}
-
-/* 선택 상태(파란 배경, 흰 글자) */
-.ant-picker-calendar
-  .ant-picker-cell-in-view.ant-picker-cell-selected
-  .ant-picker-calendar-date {
-  background: #4d78ff;
-  color: #fff;
-}
-
-/* 헤더 줄: h2 왼쪽, 탭 오른쪽 */
+/* 헤더 전체 컨테이너 (h2와 SalesAnalyticsTabs 포함) */
 .page-header-with-tabs {
   display: flex;
-  align-items: flex-end;        /* 탭 하단선을 h2 베이스라인과 맞추기 */
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;          /* 헤더 하단 여백 */
+  align-items: flex-end;    /* 탭 하단선을 h2 글자 하단과 정렬 */
+  gap: 24px;                /* 제목과 탭 사이 최소 간격 */
+  margin-bottom: 16px;      /* 헤더 전체의 아래 여백 */
 }
 
-/* 제목 여백/크기 통일 */
-.page-header-with-tabs .page-title {
-  margin: 0;
-  line-height: 1.2;
+/* 헤더 안의 탭 컴포넌트 (.header-tabs) 를 오른쪽으로 밀기 */
+.page-header-with-tabs .header-tabs {
+  margin-left: auto;
 }
 
-/* 탭 모양은 기본 유지, 불필요한 위 여백 제거 */
+/* 헤더 안의 탭 네비게이션 여백 제거 */
 .header-tabs .ant-tabs-nav {
-  margin: 0;                    /* 기본 0~16px margin 제거해 붙여줌 */
+  margin: 0;
 }
 
-/* 탭을 약간 작게 보이고 싶다면 선택적으로: */
-/*
-.header-tabs .ant-tabs-tab {
-  padding: 8px 0;               // 살짝 컴팩트
-}
-*/
+/* (페이지 제목 h2는 인라인 스타일 유지) */

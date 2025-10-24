@@ -1,4 +1,3 @@
-// src/pages/sales/SalesListPage.jsx
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -9,13 +8,13 @@ import {
   Button,
   Space,
   Modal,
-  Input, // 🔸 추가
+  Input, 
   Row,
   Col,
-  Select, // 🔸 추가
+  Select,
   Pagination,
   Tag,
-  DatePicker, // 🔸 추가
+  DatePicker, 
 } from "antd";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -25,27 +24,29 @@ import {
   deleteSales,
   deleteMultipleSales,
   setSelectedKeys,
-  setSearchParam, // 🔸 추가
+  setSearchParam, 
   clearSalesError,
-} from "../slice/salesSlice"; // 🔸 setSearchParam 임포트
+} from "../slice/salesSlice"; 
 import SalesModal from "../components/SalesModal";
+import { getHistory } from '../../api/historyApi';
 
-// 🔸 추가
+
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-// const { confirm } = Modal; // (원본에 있었으나 사용되지 않아 주석 처리)
 
 const SalesListPage = () => {
   const dispatch = useDispatch();
 
   const {
     list: sales,
+    pagination,
+    loading,
     pagination: salesPagination,
-    searchParams: salesSearchParams, // 🔸 추가 (Redux store에서 검색 파라미터 가져오기)
+    searchParams: salesSearchParams, 
     selectedKeys: selectedSalesKeys,
     loading: salesLoading,
     error: salesError,
-  } = useSelector((state) => state.sales); // 🔸 salesSearchParams 추가
+  } = useSelector((state) => state.sales); 
 
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
   const [editingSales, setEditingSales] = useState(null);
@@ -55,12 +56,10 @@ const SalesListPage = () => {
   const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 🔸 검색 UI용 Local State 추가
   const [filterType, setFilterType] = useState("text"); // 기본검색, 주문번호, 판매일자, 판매금액 등
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
 
-  // 🔸 loadSales: searchParams를 사용하도록 수정
   const loadSales = (
     page = salesPagination?.current || 1,
     size = salesPagination?.pageSize || 10,
@@ -85,10 +84,10 @@ const SalesListPage = () => {
   }, [salesError, dispatch]);
 
   const handlePaginationChange = (page, pageSize) => {
-    loadSales(page, pageSize); // 🔸 params 없이 호출 -> Redux의 searchParams가 자동으로 사용됨
+    loadSales(page, pageSize); 
   };
 
-  // ... (매출 등록/수정 모달 핸들러는 기존과 동일) ...
+
   const showSalesModal = (row = null) => {
     setEditingSales(row);
     setIsSalesModalOpen(true);
@@ -98,7 +97,7 @@ const SalesListPage = () => {
     setEditingSales(null);
   };
 
-  // ... (삭제 확인 모달 핸들러는 기존과 동일) ...
+
   const showDeleteConfirmModal = (salesId = null) => {
     if (salesId) {
       setDeletingSalesId(salesId);
@@ -225,6 +224,15 @@ const SalesListPage = () => {
 
   const columns = [
     {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => {
+        return (pagination.current - 1) * pagination.pageSize + index + 1;
+      },
+    },
+    {
       title: "판매번호",
       dataIndex: "salesId",
       key: "salesId",
@@ -257,7 +265,10 @@ const SalesListPage = () => {
       dataIndex: "salesAmount",
       key: "salesAmount",
       align: "center",
-      render: (amount) => (amount != null ? `${Number(amount).toLocaleString("ko-KR")} 원` : "-"),
+      render: (amount) => 
+        (amount != null 
+          ? `${Math.trunc(Number(amount)).toLocaleString("ko-KR")} 원` 
+          : "-"),
     },
     {
       title: "계산서",

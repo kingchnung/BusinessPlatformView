@@ -377,7 +377,7 @@ const PrettyCalendar = ({ value, onChange }) => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" />
                         <YAxis tickFormatter={formatCurrency} width={100} />
-                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                        <Tooltip formatter={(value) => formatCurrency(value)} cursor={false} />
                         <Legend />
                         <Bar dataKey="target" fill="#CCCCCC" name="목표액" />
                         <Bar dataKey="sales" fill="#479ef6ff" name="매출액" />

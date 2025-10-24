@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import ClientModal from "../components/ClientModal";
+import { getHistory } from '../../api/historyApi';
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -23,6 +24,8 @@ const ClientListPage = () => {
 
   const {
     list: clients, 
+    pagination, 
+    loading,
     pagination: clientPagination,
     searchParams: clientSearchParams,
     selectedKeys: selectedClientKeys,
@@ -141,6 +144,15 @@ const handlePaginationChange = (page, pageSize) => {
   };
 
   const columns = [
+    {
+      title: "No",
+      key: "rowNumber",
+      align: "center",
+      width: "60px", 
+      render: (text, record, index) => {
+        return (pagination.current - 1) * pagination.pageSize + index + 1;
+      },
+    },
     { title: "사업자번호", dataIndex: "clientId", key: "clientId", align: "center", width: "20%" },
     {
       title: "거래처명",
