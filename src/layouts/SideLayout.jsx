@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Layout, Menu } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { boardMenuConfig } from "../groupware/board/util/boardMenuConfig";
+import { approvalMenuConfig } from "../groupware/util/approvalMenuConfig";
 import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { salesMenuConfig } from "../sales/util/salesMenuConfig";
 import { mainMenuConfig } from "./mainMenuConfig";
@@ -9,13 +11,8 @@ import { workMenuConfig } from "../work/util/wokMenuConfig";
 
 // HR 메뉴 경로 조정 함수
 import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath";
-
 import "./commonLayout_temp.css";
-import { approvalMenuConfig } from "../groupware/approval/util/approvalMenuConfig";
-import { boardMenuConfig } from "../groupware/board/util/boardMenuConfig";
-import { approvalMenuConfig } from "../groupware/util/approvalMenuConfig";
-import { adminMenuConfig } from "../admin/util/adminMenuConfig"; // 🔹 관리자 메뉴 추가
-import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath"; // HR 전용 조정
+import { adminMenuConfig } from "../admin/util/adminMenuConfig";
 
 
 const { Sider } = Layout;

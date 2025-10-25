@@ -106,34 +106,10 @@ export const adminMenuConfig = [
     children: [
       {
         key: "/admin/boards/manage",
-        label: "게시판 생성/삭제",
+        label: "게시글 관리",
         path: "/admin/boards/manage",
         role: "ROLE_ADMIN",
-      },
-      {
-        key: "/admin/boards/reports",
-        label: "게시글 신고 관리",
-        path: "/admin/boards/reports",
-        role: "ROLE_ADMIN",
-      },
-      {
-        key: "/admin/boards/pinned",
-        label: "공지사항 상단 고정",
-        path: "/admin/boards/pinned",
-        role: "ROLE_ADMIN",
-      },
-      {
-        key: "/admin/boards/access",
-        label: "권한별 접근 설정",
-        path: "/admin/boards/access",
-        role: "ROLE_ADMIN",
-      },
-      {
-        key: "/admin/boards/statistics",
-        label: "게시판 통계 조회",
-        path: "/admin/boards/statistics",
-        role: "ROLE_ADMIN",
-      },
+      }
     ],
   },
 
