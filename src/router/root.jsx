@@ -10,6 +10,8 @@ import ApprovalRoutes from "../groupware/router/GroupwareRoutes";
 import ApprovalRouter from "../groupware/router/GroupwareRouter";
 import hrRoutes from "../hr/router/HrRoutes";
 import HrRouter from "../hr/router/HrRouter";
+import WorkRouter from "../work/router/workRouter";
+import workRoutes from "../work/router/workRoutes";
 import SalesRouter from "../sales/router/SalesRouter";
 import SalesRoutes from "../sales/router/SalesRoutes";
 
@@ -68,6 +70,12 @@ const root = createBrowserRouter([
         element : <AdminRouter />,
         children: adminRoutes,     
       },
+      {
+        path :"/work",
+        element : <WorkRouter />,
+        children: workRoutes,     
+      },
+
       {
         path :"sales",
         element : <SalesRouter />,

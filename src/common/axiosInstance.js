@@ -4,26 +4,14 @@ import { message } from "antd";
 // ✅ 1️⃣ Axios 인스턴스 생성
 const axiosInstance = axios.create({
   baseURL: "http://localhost:8080/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true, // ✅ 쿠키(Refresh Token)도 함께 전송
+  headers: { "Content-Type": "application/json",  },
 });
 
 // ✅ 2️⃣ 요청 인터셉터 - JWT 자동 첨부
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    if (config.data instanceof FormData) {
-      delete config.headers["Content-Type"];
-    } else {
-      config.headers["Content-Type"] = "application/json";
-    }
-
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
@@ -48,22 +36,21 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // 무한 루프 방지
       try {
-        // Refresh Token으로 Access Token 재발급 요청
+        
         const res = await axios.post(
           "http://localhost:8080/api/auth/refresh",
-          {}, // 바디 비워둠
-          { withCredentials: true } // Refresh Token 쿠키 전송
+          {},
+          { withCredentials: true }
         );
 
-        const newAccessToken = res.data.accessToken;
-        if (newAccessToken) {
-          localStorage.setItem("token", newAccessToken);
+        const { accessToken, user } = res.data;
+        if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        if (user) localStorage.setItem("user", JSON.stringify(user));
 
-          // 갱신된 토큰으로 요청 재시도
-          axiosInstance.defaults.headers.Authorization = `Bearer ${newAccessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-          return axiosInstance(originalRequest);
+        axiosInstance.defaults.headers.Authorization = `Bearer ${accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
         console.error("🔒 Refresh Token 만료 또는 유효하지 않음:", refreshError);
@@ -72,13 +59,12 @@ axiosInstance.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-
     return Promise.reject(error);
   }
 );
 
-// ✅ 4️⃣ (선택) 주기적 서버 헬스체크 (1분마다)
-const startHealthCheck = (intervalMs = 60000) => {
+// ✅ 4️⃣ (선택) 주기적 서버 헬스체크 (10분마다)
+const startHealthCheck = (intervalMs = 600000) => {
   setInterval(async () => {
     try {
       await axiosInstance.get("/health");
@@ -89,6 +75,6 @@ const startHealthCheck = (intervalMs = 60000) => {
     }
   }, intervalMs);
 };
-startHealthCheck(60000);
+startHealthCheck(600000);
 
 export default axiosInstance;
