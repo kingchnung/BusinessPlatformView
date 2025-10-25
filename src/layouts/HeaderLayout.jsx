@@ -10,7 +10,7 @@ const getTopMenuKey = (pathname) => {
   if (pathname.startsWith('/sales')) return '/sales';
   if (pathname.startsWith('/approvals')) return '/approvals';
   if (pathname.startsWith('/communications')) return '/communications';
-  if (pathname.startsWith('/project')) return '/project';
+  if (pathname.startsWith('/work')) return '/work';
   if (pathname === '/' || pathname === '/main') return '/';
   return '/';
 };
@@ -35,7 +35,7 @@ const HeaderLayout = () => {
     { key: "main", label: "메인" },
     { key: "hr", label: "인사" },
     { key: "sales", label: "영업" },
-    { key: "Project", label: "프로젝트" },
+    { key: "work", label: "업무" },
     { key: "approvals", label: "전자결재" },
     { key: "boards", label: "사내게시판" },
   ];
