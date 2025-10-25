@@ -90,3 +90,8 @@ export const permanentlyDeleteDepartment = async (deptId) => {
     throw error;
   }
 };
+
+export const assignDepartmentManager = async (deptId, managerId) => {
+  const res = await axiosInstance.put(`/departments/${deptId}/manager`, { managerId });
+  return res.data;
+};

@@ -7,6 +7,7 @@ import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { adminMenuConfig } from "../admin/util/adminMenuConfig";
 import { salesMenuConfig } from "../sales/util/salesMenuConfig";
 import { mainMenuConfig } from "./mainMenuConfig";
+import { workMenuConfig } from "../work/util/wokMenuConfig";
 
 // HR 메뉴 경로 조정 함수
 import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath";
@@ -67,6 +68,7 @@ const getMenuConfig = (pathname) => {
   if (pathname.startsWith("/admin")) return adminMenuConfig;
   if (pathname.startsWith("/approvals")) return approvalMenuConfig;
   if (pathname.startsWith("/boards")) return boardMenuConfig;
+  if (pathname.startsWith("/work")) return workMenuConfig;
   if (pathname === "/" || pathname.startsWith("/main")) return mainMenuConfig;
   return [];
 };
