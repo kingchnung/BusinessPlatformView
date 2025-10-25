@@ -83,7 +83,7 @@ export const adminMenuConfig = [
     children: [
       {
         key: "/admin/approval/list",
-        label: "모든 문서 열람",
+        label: "전자결재 문서 관리",
         path: "/admin/approval/list",
         role: "ROLE_ADMIN",
       },
