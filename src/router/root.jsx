@@ -6,8 +6,8 @@ import RootLayout from "./RootLayout"; // ✅ 1번에서 만든 최상위 레이
 import ProtectedRoute from "./ProtectedRoute";
 import AdminRouter from "../admin/router/AdminRouter";
 import adminRoutes from "../admin/router/AdminRoutes";
-import ApprovalRoutes from "../groupware/approval/router/ApprovalRoutes";
-import ApprovalRouter from "../groupware/approval/router/ApprovalRouter";
+import ApprovalRoutes from "../groupware/router/GroupwareRoutes";
+import ApprovalRouter from "../groupware/router/GroupwareRouter";
 import hrRoutes from "../hr/router/HrRoutes";
 import HrRouter from "../hr/router/HrRouter";
 import SalesRouter from "../sales/router/SalesRouter";

@@ -5,8 +5,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { salesMenuConfig } from "../sales/util/salesMenuConfig";
 import { mainMenuConfig } from "./mainMenuConfig";
+import { approvalMenuConfig } from "../groupware/util/approvalMenuConfig";
 import { adminMenuConfig } from "../admin/util/adminMenuConfig"; // 🔹 관리자 메뉴 추가
 import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath"; // HR 전용 조정
+
 
 const { Sider } = Layout;
 
@@ -57,6 +59,7 @@ const getMenuConfig = (pathname) => {
   if (pathname.startsWith("/hr")) return hrMenuConfig;
   if (pathname.startsWith("/sales")) return salesMenuConfig;
   if (pathname.startsWith("/admin")) return adminMenuConfig;
+  if (pathname.startsWith("/approvals")) return approvalMenuConfig;
   if (pathname === "/" || pathname.startsWith("/main")) return mainMenuConfig;
   return [];
 };
