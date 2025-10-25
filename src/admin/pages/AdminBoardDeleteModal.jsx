@@ -3,7 +3,7 @@ import {
     Modal, Form, Select, Input, Space, Button, Table, Tag, message
 } from "antd";
 import { SearchOutlined, DeleteOutlined } from "@ant-design/icons";
-import { fetchBoardList, deleteBoard } from "../../../../api/groupware/boardApi";
+import { fetchBoardList, deleteBoard } from "../../api/groupware/boardApi";
 const { Option } = Select;
 
 

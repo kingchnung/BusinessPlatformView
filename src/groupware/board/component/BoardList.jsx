@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Table, Select, Input, Button, Row, Col, Space, Tag, message } from "antd";
 import { fetchBoardList } from "../../../api/groupware/boardApi";
-import AdminBoardDeleteModal from "../component/modal/AdminBoardDeleteModal"; // ← 경로는 위치에 맞게 조정
+import AdminBoardDeleteModal from "../../../admin/pages/AdminBoardDeleteModal"; // ← 경로는 위치에 맞게 조정
 import { useSelector } from "react-redux";
 
 
