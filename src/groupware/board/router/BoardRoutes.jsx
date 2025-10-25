@@ -10,10 +10,11 @@ const BoardEdit = lazy(() => import("../pages/BoardEditPage"));
 
 // ✅ 하위 라우트 정의
 const boardRoutes = [
+
   {
-      index: true, 
-      element: <Suspense fallback={Loading}><BoardList /></Suspense>,
-    },
+    index: true,
+    element: <Suspense fallback={Loading}><BoardList /></Suspense>,
+  },
   {
     path: "write", // /board/write
     element: (
@@ -38,6 +39,14 @@ const boardRoutes = [
       </Suspense>
     ),
   },
+  {
+    path: "type/:boardType",
+    element:
+      <Suspense fallback={Loading}>
+        <BoardList />
+      </Suspense>
+  },
+
 ];
 
 export default boardRoutes;
