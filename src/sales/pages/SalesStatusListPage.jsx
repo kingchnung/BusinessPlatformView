@@ -341,11 +341,12 @@ const SalesStatusListPage = () => {
               {clientStatusList && clientStatusList.length > 0 && (
                 <Pagination
                   current={clientStatusPagination?.current || 1}
-                  pageSize={clientStatusPagination?.pageSize || 10}
-                  total={clientStatusPagination?.total || 0}
-                  onChange={handleClientPaginationChange}
-                  showSizeChanger
-                  pageSizeOptions={["10", "20", "50"]}
+                    pageSize={clientStatusPagination?.pageSize || 10}
+                    total={clientStatusPagination?.total || 0}
+                    onChange={(p, ps) => handleClientPaginationChange(p, ps)} 
+                    onShowSizeChange={(p, ps) => handleClientPaginationChange(1, ps)} 
+                    showSizeChanger
+                    pageSizeOptions={['10','20','50']}
                 />
               )}
             </div>
