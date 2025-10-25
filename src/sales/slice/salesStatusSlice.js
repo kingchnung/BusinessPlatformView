@@ -8,24 +8,25 @@ import {
 // "거래처별 현황" Thunk
 export const fetchClientSalesStatus = createAsyncThunk(
   "salesStatus/fetchClientSalesStatus",
-  async (params, { rejectWithValue }) => {
+  async ({ page = 1, size = 10, year, month }, { rejectWithValue }) => {
     try {
-      const res = await getClientSalesStatus(params);
-
+      const res = await getClientSalesStatus({
+        page: Math.max(1, Number(page)),
+        size: Number(size),
+        year,
+        month,
+});
       // axios일 때 res.data, fetch-wrapper면 res 그대로일 수 있으니 모두 커버
       const data = res?.data ?? res ?? {};
 
       // 백엔드 PageResponseDTO ↔ 프론트 상태 형태 매핑
       const {
-        dtoList = [],
-        page: current = 1,
-        size: pageSize = 10,
-        totalCount = 0,
+        dtoList = [], page: current = page, size: pageSize = size, totalCount = 0,
       } = data;
 
       return {
         list: dtoList,
-        pagination: { current, pageSize, total: totalCount },
+        pagination: { current: Number(current), pageSize: Number(pageSize), total: Number(totalCount) },
       };
     } catch (error) {
       return rejectWithValue(error?.response?.data || { message: error.message || "조회 실패" });
@@ -71,14 +72,16 @@ export const fetchAnnualSalesStatus = createAsyncThunk(
 );
 
 // 🔽 2. 초기 상태
+const currentYear = new Date().getFullYear();
+
 const initialState = {
   clientStatusList: [],
   clientStatusPagination: { current: 1, pageSize: 10, total: 0 },
   clientStatusLoading: false,
   periodStatusList: [],
   periodStatusLoading: false,
-  selectedYear: new Date().getFullYear(),
-  selectedMonth: new Date().getMonth() + 1,
+selectedYear: currentYear, 
+  selectedMonth: 0,
   error: null,
 
   // 🔽 CollectionListPage '거래처별 요약' 탭용 상태

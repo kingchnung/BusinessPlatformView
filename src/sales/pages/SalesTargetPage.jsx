@@ -45,9 +45,9 @@ const SalesTargetPage = () => {
 
  
   useEffect(() => {
-    loadTargets(1, targetPagination.pageSize, selectedYear); // 연도 변경 시 1페이지부터
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear]);
+    loadTargets(1, targetPagination.pageSize, selectedYear);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
 
   useEffect(() => {
@@ -59,9 +59,9 @@ const SalesTargetPage = () => {
   }, [targetError, dispatch]);
 
 
-  const handlePaginationChange = (paginationConfig) => {
-    loadTargets(paginationConfig.current, paginationConfig.pageSize, selectedYear);
-  };
+ const handlePaginationChange = (page, pageSize) => {
+   loadTargets(page, pageSize, selectedYear);
+};
 
 
   const handleYearChange = (value) => {
@@ -205,7 +205,10 @@ const SalesTargetPage = () => {
                     current={targetPagination.current}
                     pageSize={targetPagination.pageSize}
                     total={targetPagination.total}
-                    onChange={handlePaginationChange}
+                    onChange={handlePaginationChange} 
+                    onShowSizeChange={(page, pageSize) => loadTargets(1, pageSize, selectedYear)}
+                    showSizeChanger
+                    pageSizeOptions={['10','20','50']}
                 />
              }
         </div>

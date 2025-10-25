@@ -9,7 +9,7 @@ export const fetchSalesTargets = createAsyncThunk(
   'salesTarget/fetchSalesTargets', 
   async ({ page = 1, size = 10, year }, { rejectWithValue }) => {
     try {
-      const response = await getSalesTargetList(page, size, year);
+      const response = await getSalesTargetList(Math.max(1, page), size, year);
       return response;
     } catch (error) {
        return rejectWithValue(error.response?.data || { message: "매출 목표 조회 실패" });
