@@ -1,12 +1,29 @@
-import React from "react";
-import { Card, List } from "antd";
+import React, { useEffect, useState } from "react";
+import { Card, List, message, Spin } from "antd";
+import { useNavigate } from "react-router-dom";
+import { fetchBoardList } from "../../api/groupware/boardApi"; // ✅ 공지 목록 API 재사용
 
 const NoticeBoardCard = () => {
-  const notices = [
-    { title: "시스템 점검 안내", date: "2025-10-14" },
-    { title: "추석 연휴 근무 일정 공지", date: "2025-09-25" },
-    { title: "보안 정책 변경 안내", date: "2025-09-10" },
-  ];
+  const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadNotices = async () => {
+      try {
+        setLoading(true);
+        // ✅ type: NOTICE 만 가져오고, 페이지는 1, 크기는 3으로 제한
+        const res = await fetchBoardList({ type: "NOTICE", page: 1, size: 3 });
+        setNotices(res?.dtoList || []); // ← 서버 반환 구조 맞춰줘
+      } catch (err) {
+        console.error("❌ 공지사항 불러오기 실패:", err);
+        message.error("공지사항을 불러오지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadNotices();
+  }, []);
 
   return (
     <Card
@@ -17,19 +34,28 @@ const NoticeBoardCard = () => {
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         height: "100%",
       }}
-      extra={<a href="/board/notice">더보기</a>}
+      extra={<a onClick={() => navigate("/boards/type/notice")}>더보기</a>}
     >
-      <List
-        dataSource={notices}
-        renderItem={(item) => (
-          <List.Item>
-            <div style={{ width: "100%" }}>
-              <strong>{item.title}</strong>
-              <div style={{ color: "#888", fontSize: "12px" }}>{item.date}</div>
-            </div>
-          </List.Item>
-        )}
-      />
+      {loading ? (
+        <Spin tip="로딩 중..." />
+      ) : (
+        <List
+          dataSource={notices}
+          renderItem={(item) => (
+            <List.Item
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate(`/boards/${item.boardNo}`)} // ✅ 클릭 시 상세 이동
+            >
+              <div style={{ width: "100%" }}>
+                <strong>{item.title}</strong>
+                <div style={{ color: "#888", fontSize: "12px" }}>
+                  {item.createdAt?.substring(0, 10) || ""}
+                </div>
+              </div>
+            </List.Item>
+          )}
+        />
+      )}
     </Card>
   );
 };
