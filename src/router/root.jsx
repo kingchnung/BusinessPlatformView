@@ -25,7 +25,10 @@ const Main = lazy(() => import("../pages/MainPage"));
 const Login = lazy(() => import("../pages/LoginPage"));
 const Intro = lazy(()=>import("../pages/IntroPage"));
 
+const Project = lazy(() => import ("../pages/ProjectPage"));
+
 const root = createBrowserRouter([
+
   {
     // 최상위 경로: 모든 자식 경로는 RootLayout의 Outlet에 렌더링됩니다.
     // 따라서 모든 페이지에 접속 시 RootLayout의 useEffect가 실행됩니다.
