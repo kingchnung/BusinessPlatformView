@@ -66,7 +66,18 @@ const formatCurrency = (v) =>
   v || v === 0 ? `${Math.trunc(Number(v)).toLocaleString("ko-KR")} 원` : "-";
 
 /** 거래처별 현황 컬럼 (월/연간 제목 분기) */
-const getClientStatusColumns = (selectedMonth) => [
+const getClientStatusColumns = (selectedMonth, pagination) => [
+  {
+    title: "No",
+    key: "rowNumber",
+    align: "center",
+    width: 64,
+    render: (_, __, index) => {
+      const cur = pagination?.current || 1;
+      const sz  = pagination?.pageSize || 10;
+      return (cur - 1) * sz + index + 1;
+    },
+  },
   {
     title: "사업자번호",
     dataIndex: "clientId",
@@ -328,7 +339,7 @@ const SalesStatusListPage = () => {
             <Table
               rowKey="clientId"
               dataSource={clientStatusList}
-              columns={getClientStatusColumns(selectedMonth)}
+              columns={getClientStatusColumns(selectedMonth, clientStatusPagination)}
               pagination={false}
             />
             <div

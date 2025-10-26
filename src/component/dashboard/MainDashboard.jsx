@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import MyInfoCard from "../../hr/employee/components/MyInfoCard";
 import ApprovalSummaryCard from "./ApprovalSummaryCard";
-
+import SalesMiniLineChart from "../../sales/components/SalesMiniLineChart";
 
 
 const MainDashboard = () => {
@@ -17,14 +17,16 @@ const MainDashboard = () => {
       {/* 상단 섹션: 매출, 전자결재, 내 정보 */}
       <Row gutter={[16, 16]} style={{ height: "55%" }}>
         {/* 매출현황 */}
-        <Col xs={24} md={15}>
+        <Col xs={24} md={15} style={{ minWidth: 0 }}>
           <Card
             title="📊 매출 현황"
             bordered={false}
             style={{ borderRadius: "12px", height: "100%" }}
-    
+            bodyStyle={{ height: "100%", padding: 12 }}
           >
-            그래프 컴포넌트 자리
+            <div style={{ width: "100%", minWidth: 0, minHeight: 360 }}>
+              <SalesMiniLineChart height={360} showHeader />
+            </div>
           </Card>
         </Col>
 

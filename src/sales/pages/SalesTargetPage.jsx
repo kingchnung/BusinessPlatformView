@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { Table, message, Card, Spin, Button, Space, Modal, Row, Col, Select, Pagination } from "antd";
+import { Table, message, Card, Spin, Button, Space, Modal, Row, Col, Select, Pagination, Statistic } from "antd";
+import { getSalesTargetList } from "../../api/sales/salesTargetApi";
 import { fetchSalesTargets, deleteSalesTarget, deleteMultipleSalesTargets, setSelectedYear, clearTargetError, setSelectedKeys} from '../slice/salesTargetSlice';
 import MainLayout from "../../layouts/MainLayout";
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
@@ -11,6 +12,7 @@ const { Option } = Select;
 
 const SalesTargetPage = () => {
   const dispatch = useDispatch();
+  const [yearTotal, setYearTotal] = useState(0); 
 
   const {
     list: targets,
@@ -38,6 +40,20 @@ const SalesTargetPage = () => {
     return years;
   };
 
+  const loadYearTotal = async (year = selectedYear) => {
+    try {
+      const res = await getSalesTargetList(1, 999, year); // 전량 조회
+      const sum = (res?.dtoList || []).reduce(
+        (acc, cur) => acc + (Number(cur.targetAmount) || 0),
+        0
+      );
+      setYearTotal(sum);
+    } catch (e) {
+      // 조용히 실패 처리(토스트는 과함)
+      setYearTotal(0);
+    }
+  };
+
 
   const loadTargets = (page = targetPagination.current, size = targetPagination.pageSize, year = selectedYear) => {
     dispatch(fetchSalesTargets({ page, size, year }));
@@ -46,6 +62,7 @@ const SalesTargetPage = () => {
  
   useEffect(() => {
     loadTargets(1, targetPagination.pageSize, selectedYear);
+    loadYearTotal(selectedYear);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -66,6 +83,8 @@ const SalesTargetPage = () => {
 
   const handleYearChange = (value) => {
     dispatch(setSelectedYear(value));
+    loadTargets(1, targetPagination.pageSize, value);
+    loadYearTotal(value);
   };
 
 
@@ -107,6 +126,7 @@ const SalesTargetPage = () => {
         message.success("삭제되었습니다.");
       }
       loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear); // 현재 페이지/연도 기준 리로드
+      loadYearTotal(selectedYear);
       handleDeleteConfirmClose();
     } catch (rejectedValueOrSerializedError) {
       console.error("Delete failed:", rejectedValueOrSerializedError);
@@ -164,31 +184,58 @@ const SalesTargetPage = () => {
     <MainLayout>
         <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>매출 목표 관리</h2>
       
-      <Card style={{ marginBottom: 20 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Space>
-              <Select
-                value={selectedYear}
-                style={{ width: 120 }}
-                onChange={handleYearChange}
-              >
-                {generateYearOptions()}
-              </Select>
-            </Space>
-          </Col>
-          <Col>
-            <Space>
-              <Button danger onClick={() => showDeleteConfirmModal()} disabled={!hasSelected}>
-                선택 삭제
-              </Button>
-              <Button onClick={() => showTargetModal()} icon={<PlusOutlined />}>
-                신규 목표 등록
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+ <Card style={{ marginBottom: 20 }}>
+   <Row align="middle" justify="space-between" gutter={16}>
+     {/* 왼쪽: 연도 셀렉트 */}
+     <Col flex="auto">
+      <Space>
+         <Select
+           value={selectedYear}
+           style={{ width: 120 }}
+           onChange={handleYearChange}
+         >
+           {generateYearOptions()}
+         </Select>
+       </Space>
+     </Col>
+
+     {/* 오른쪽: 버튼들 + 목표액 카드 (한 줄로 붙이기) */}
+     <Col flex="none">
+       <Space align="center" size="middle" wrap>
+         <Space>
+           <Button
+             danger
+             onClick={() => showDeleteConfirmModal()}
+             disabled={!hasSelected}
+           >
+             선택 삭제
+           </Button>
+           <Button onClick={() => showTargetModal()} icon={<PlusOutlined />}>
+             신규 목표 등록
+           </Button>
+         </Space>
+
+         <div
+           style={{
+             minWidth: 320,
+             padding: 12,
+             border: "1px solid #f0f0f0",
+             borderRadius: 8,
+             background: "#fff",
+            textAlign: "right",
+           }}
+         >
+           <Statistic
+             title={`${selectedYear}년 연간 목표액`}
+             value={yearTotal}
+             precision={0}
+             formatter={(v) => `${Number(v).toLocaleString("ko-KR")} 원`}
+           />
+         </div>
+       </Space>
+     </Col>
+   </Row>
+ </Card>
 
       <Spin spinning={targetLoading} tip="로딩 중...">
         <Table
@@ -218,7 +265,10 @@ const SalesTargetPage = () => {
         open={isTargetModalOpen}
         onClose={handleTargetModalClose} 
         targetData={editingTarget}
-        onRefresh={() => loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear)} // 현재 페이지/연도 리로드
+        onRefresh={() => {
+        loadTargets(targetPagination.current, targetPagination.pageSize, selectedYear);
+        loadYearTotal(selectedYear);
+        }}
       />
 
       <Modal
