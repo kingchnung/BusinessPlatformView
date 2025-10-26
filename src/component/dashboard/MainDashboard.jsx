@@ -4,6 +4,7 @@ import NoticeBoardCard from "./NoticeBoardCard";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import MyInfoCard from "../../hr/employee/components/MyInfoCard";
+import ApprovalSummaryCard from "./ApprovalSummaryCard";
 
 
 
@@ -34,7 +35,7 @@ const MainDashboard = () => {
             bordered={false}
             style={{ borderRadius: "12px", height: "100%" }}
           >
-            결재 대기 / 승인 / 반려 카운트
+            <ApprovalSummaryCard />
           </Card>
         </Col>
 

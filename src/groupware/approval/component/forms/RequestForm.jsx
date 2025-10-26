@@ -2,7 +2,7 @@
 import { Form, Input, Select, Divider } from "antd";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
-import { useFormInitializer } from "../../util/useFormInitializer";
+import { useFormInitializer } from "../../../util/useFormInitializer";
 
 const { TextArea } = Input;
 

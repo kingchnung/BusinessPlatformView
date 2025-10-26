@@ -2,11 +2,18 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Layout, Menu } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { boardMenuConfig } from "../groupware/board/util/boardMenuConfig";
+import { approvalMenuConfig } from "../groupware/util/approvalMenuConfig";
 import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { salesMenuConfig } from "../sales/util/salesMenuConfig";
 import { mainMenuConfig } from "./mainMenuConfig";
-import { adminMenuConfig } from "../admin/util/adminMenuConfig"; // 🔹 관리자 메뉴 추가
-import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath"; // HR 전용 조정
+import { workMenuConfig } from "../work/util/wokMenuConfig";
+
+// HR 메뉴 경로 조정 함수
+import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath";
+import "./commonLayout_temp.css";
+import { adminMenuConfig } from "../admin/util/adminMenuConfig";
+
 
 const { Sider } = Layout;
 
@@ -57,6 +64,9 @@ const getMenuConfig = (pathname) => {
   if (pathname.startsWith("/hr")) return hrMenuConfig;
   if (pathname.startsWith("/sales")) return salesMenuConfig;
   if (pathname.startsWith("/admin")) return adminMenuConfig;
+  if (pathname.startsWith("/approvals")) return approvalMenuConfig;
+  if (pathname.startsWith("/boards")) return boardMenuConfig;
+  if (pathname.startsWith("/work")) return workMenuConfig;
   if (pathname === "/" || pathname.startsWith("/main")) return mainMenuConfig;
   return [];
 };

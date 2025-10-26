@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Descriptions, Tag, List, Card, message, Button, Divider, Space, Typography, Empty, Modal, Input, } from "antd";
 import { ArrowLeftOutlined, FileOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, RedoOutlined, DownloadOutlined, EyeOutlined, } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { approveDocument, downloadPdf, getApprovalDetail, previewPdf, rejectDocument, } from "../../../api/groupware/approvalApi";
+import { approveDocument, downloadFile, downloadPdf, getApprovalDetail, previewFileAxios, previewPdf, rejectDocument, } from "../../../api/groupware/approvalApi";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -51,6 +51,9 @@ const ApprovalDetail = ({ docId }) => {
                 setDetail(res);
                 console.log("📄 [상세조회 성공]", res);
 
+                const { status, approvalLine, currentApproverIndex } = res;
+                const userEmpNo = currentUser.empNo || currentUser.email?.split("@")[0] || "";
+
                 // 🔹 안전 가드 추가
                 if (
                     res.status === "IN_PROGRESS" &&
@@ -63,7 +66,7 @@ const ApprovalDetail = ({ docId }) => {
 
                     const equalsIgnoreCaseTrim = (a, b) => {
                         if (!a || !b) return false;
-                        return a.trim().toLowerCase() === b.trim().toLowerCase();
+                        return a.toString().trim().toLowerCase() === b.toString().trim().toLowerCase();
                     };
 
                     const isApprover =
@@ -71,14 +74,13 @@ const ApprovalDetail = ({ docId }) => {
                         (
                             equalsIgnoreCaseTrim(currentStep.approverId, currentUser.username) ||
                             equalsIgnoreCaseTrim(currentStep.approverId, currentUser.empNo) ||
-                            (currentStep.approverId === "-" &&
-                                equalsIgnoreCaseTrim(currentStep.approverName, currentUser.empName))
+                            equalsIgnoreCaseTrim(currentStep.approverName, currentUser.empName)
                         );
 
                     setIsCurrentUserTheApprover(isApprover);
 
                     if (isApprover) {
-                        console.log("✅ 현재 결재자:", currentUser.empName);
+                        message.success(`현재 결재자: ${currentUser.empName}`, 1.5);
                     } else {
                         console.log("🚫 현재 결재자가 아닙니다.");
                         console.log("🔍 비교값 →", {
@@ -87,6 +89,7 @@ const ApprovalDetail = ({ docId }) => {
                             username: currentUser.username,
                             empNo: currentUser.empNo,
                             empName: currentUser.empName,
+                            email: currentUser.email,
                             currentApproverIndex: res.currentApproverIndex,
                         });
                     }
@@ -116,8 +119,13 @@ const ApprovalDetail = ({ docId }) => {
        ✅ 승인 처리
     =========================================================== */
     const handleApprove = async () => {
+        if (!detail || !detail.id) {
+            message.error("문서 정보가 없습니다.");
+            return;
+        }
+
         try {
-            await approveDocument(detail.id);
+            await approveDocument(detail.docId || detail.id, detail.approvalLine || []);
             message.success("문서가 승인되었습니다 ✅");
             navigate("/approvals");
         } catch (err) {
@@ -138,8 +146,9 @@ const ApprovalDetail = ({ docId }) => {
             message.warning("반려 사유를 입력해주세요.");
             return;
         }
+
         try {
-            await rejectDocument(detail.id, rejectReason);
+            await rejectDocument(detail.id, rejectReason, detail.approvalLine || []);
             message.success("문서가 반려되었습니다 ❌");
             setIsRejectModalOpen(false);
             navigate("/approvals");
@@ -179,9 +188,19 @@ const ApprovalDetail = ({ docId }) => {
     /* ===========================================================
      ✅ 미리보기 핸들러
   =========================================================== */
-    const handlePreview = (file) => {
-        setPreviewFile(file);
-        setPreviewVisible(true);
+    const handlePreview = async (file) => {
+        try {
+            const res = await axiosInstance.get(`/approvals/attachments/preview/${file.id}`, {
+                responseType: "blob",
+            });
+            const blob = new Blob([res.data], { type: res.headers["content-type"] });
+            const url = URL.createObjectURL(blob);
+            setPreviewFile({ ...file, blobUrl: url }); // ✅ blobUrl 저장
+            setPreviewVisible(true);
+        } catch (err) {
+            console.error("미리보기 실패:", err);
+            message.error("파일 미리보기를 불러올 수 없습니다.");
+        }
     };
 
     const handleDownload = (file) => {
@@ -355,13 +374,13 @@ const ApprovalDetail = ({ docId }) => {
                                 actions={[
                                     <a
                                         key="preview"
-                                        onClick={() => handlePreview(file)}
+                                        onClick={() => previewFileAxios(file.id)}
                                     >
                                         미리보기
                                     </a>,
                                     <a
                                         key="download"
-                                        onClick={() => handleDownload(file)}
+                                        onClick={() => downloadFile(file.id)}
                                     >
                                         다운로드
                                     </a>,
@@ -503,7 +522,7 @@ const ApprovalDetail = ({ docId }) => {
                                     }}
                                 >
                                     <Document
-                                        file={`http://localhost:8080/api/attachments/preview/${previewFile.id}`}
+                                        file={previewFile?.blobUrl}
                                         onLoadSuccess={({ numPages }) => setNumPages(numPages)}
                                         loading={<p>PDF 불러오는 중...</p>}
                                         error={<p>⚠️ PDF를 불러올 수 없습니다.</p>}
