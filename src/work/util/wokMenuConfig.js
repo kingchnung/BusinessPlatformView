@@ -22,7 +22,7 @@ export const workMenuConfig = [
       {
         key: "projectView",
         label: "프로젝트 조회", // ✅ 상세조회 화면
-        path: "",
+        path: "/work/project",
         note: "프로젝트 상세정보 확인 (모든 사용자 접근 가능)",
       },
       {

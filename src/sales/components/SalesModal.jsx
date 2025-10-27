@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   Modal, Form, Input, Button, message, Row, Col,
-  DatePicker, InputNumber, Typography, Table, Switch, Spin
+  DatePicker, InputNumber, Typography, Table, Switch, Spin, Divider
 } from "antd";
 import { PlusOutlined, DeleteOutlined, SearchOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { NOTO_SANS_KR_BASE64 } from "../../fonts/NotoSansKR-Variable.base64.js"; // ← 경로/파일명은 너의 생성 위치에 맞춰 유지
 import { getSales, registerSales, modifySales } from "../../api/sales/salesApi";
 import ClientSearchModal from "./ClientSearchModal";
 import OrderSearchModal from "./OrderSearchModal";
 
+const { Title, Text } = Typography;
+
 const toBool = (v) =>
   v === true || v === 1 || v === "1" || v === "Y" || v === "y" || v === "true" || v === "TRUE";
+
+const currency = (n) => (Number(n || 0)).toLocaleString("ko-KR");
 
 const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
   const [form] = Form.useForm();
@@ -20,6 +27,9 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
   const [totalSalesAmount, setTotalSalesAmount] = useState(0);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+
+  // ⬇️ 거래명세서 출력용 숨김 DOM
+  const printRef = useRef(null);
 
   const recalcTotal = () => {
     const items = form.getFieldValue("salesItems") || [];
@@ -62,22 +72,17 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
             salesId: detail.salesId,
             salesDate: detail.salesDate ? dayjs(detail.salesDate) : null,
             deploymentDate: detail.deploymentDate ? dayjs(detail.deploymentDate) : null,
-
-            // 🔴 명시적 매핑 (중첩 구조까지 커버)
             orderId:
               detail.orderId ??
               detail.order?.orderId ??
               salesData?.orderId ??
               "",
-
             clientId: detail.clientId ?? detail.client?.clientId ?? "",
             clientCompany: detail.clientCompany ?? detail.client?.clientCompany ?? "",
             projectId: detail.projectId ?? detail.project?.projectId ?? "",
             projectName: detail.projectName ?? detail.project?.projectName ?? "",
-
-            // 🔴 Switch와 호환되게 boolean 정규화
             invoiceIssued: toBool(detail.invoiceIssued ?? detail.issued),
-
+            salesNote: detail.salesNote ?? "",
             salesItems: (detail.salesItems || []).map((it) => ({
               ...it,
               quantity: Number(it.quantity || 0),
@@ -87,7 +92,7 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
           };
 
           form.setFieldsValue(formData);
-          setTimeout(recalcTotal, 0); // 다음 틱에서 합계 계산
+          setTimeout(recalcTotal, 0);
         } catch (e) {
           message.error("판매 상세를 불러오지 못했습니다.");
         } finally {
@@ -99,6 +104,7 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
           salesDate: dayjs(),
           invoiceIssued: false,
           salesItems: [{ quantity: 1, unitPrice: 0, unitVat: 0 }],
+          salesNote: "",
         });
         setTotalSalesAmount(0);
       }
@@ -113,7 +119,6 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
         ...values,
         salesDate: values.salesDate ? values.salesDate.format("YYYY-MM-DD") : null,
         deploymentDate: values.deploymentDate ? values.deploymentDate.format("YYYY-MM-DD") : null,
-        // 서버가 boolean을 받는다고 가정(만약 Y/N 필요하면 여기서 변환)
         invoiceIssued: !!values.invoiceIssued,
         salesItems: (values.salesItems || []).map((it) => ({
           ...it,
@@ -134,7 +139,6 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
         message.success("신규 판매가 등록되었습니다.");
       }
 
-      // 부모가 즉시 갱신(낙관적 갱신 또는 재조회 트리거)
       onRefresh?.(payload);
       onClose();
     } catch (e) {
@@ -325,6 +329,88 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
     },
   ];
 
+  // ⬇️ 출력에 사용할 계산 값들
+  const printData = useMemo(() => {
+    const v = form.getFieldsValue(true);
+    const items = (v.salesItems || []).map((it) => ({
+      ...it,
+      lineSupply: Number(it.quantity || 0) * Number(it.unitPrice || 0),
+      lineVat: Number(it.quantity || 0) * Number(it.unitVat || 0),
+      lineTotal: Number(it.quantity || 0) * (Number(it.unitPrice || 0) + Number(it.unitVat || 0)),
+    }));
+    const supplySum = items.reduce((a, c) => a + c.lineSupply, 0);
+    const vatSum = items.reduce((a, c) => a + c.lineVat, 0);
+    const totalSum = items.reduce((a, c) => a + c.lineTotal, 0);
+    return { header: v, items, supplySum, vatSum, totalSum };
+  }, [form, totalSalesAmount]);
+
+  // ⬇️ 거래명세서 PDF 생성
+  const handleExportSlipPDF = async () => {
+    try {
+      const node = printRef.current;
+      if (!node) return;
+
+      // 먼저 jsPDF 초기화 + 한글 폰트 등록
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.addFileToVFS("NotoSansKR-VariableFont_wght.ttf", NOTO_SANS_KR_BASE64);
+      pdf.addFont("NotoSansKR-VariableFont_wght.ttf", "NotoSansKR", "normal");
+      pdf.setFont("NotoSansKR", "normal");
+
+      // 헤더(벡터 텍스트)
+      const marginX = 12, marginY = 10;
+      // pdf.setFontSize(16);
+      // pdf.text("거래명세서", marginX, marginY + 6);
+      // pdf.setFontSize(10);
+      // pdf.text(`판매번호: ${printData.header.salesId || ""}`, marginX, marginY + 12);
+      // pdf.text(`거래일자: ${printData.header.salesDate ? dayjs(printData.header.salesDate).format("YYYY-MM-DD") : ""}`, marginX, marginY + 18);
+
+      // 본문(숨김 영역) 캡처
+      const canvas = await html2canvas(node, { scale: 2, useCORS: true });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const usableWidth = pageWidth - marginX * 2;
+
+      const imgWidth = usableWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let position = marginY + 22;
+      let remainingHeight = imgHeight;
+      let sourceY = 0;
+      const pageUsableHeight = pageHeight - position - marginY;
+
+      while (remainingHeight > 0) {
+        const sliceHeightPx = (pageUsableHeight * canvas.width) / imgWidth;
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = Math.min(sliceHeightPx, canvas.height - sourceY);
+        const ctx = sliceCanvas.getContext("2d");
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+
+        const sliceImgData = sliceCanvas.toDataURL("image/png");
+        const sliceImgHeightMm = (sliceCanvas.height * imgWidth) / canvas.width;
+        pdf.addImage(sliceImgData, "PNG", marginX, position, imgWidth, sliceImgHeightMm, undefined, "FAST");
+
+        sourceY += sliceCanvas.height;
+        remainingHeight -= sliceImgHeightMm;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          pdf.setFont("NotoSansKR", "normal"); // 새 페이지에서도 폰트 유지
+          pdf.setFontSize(10);
+          pdf.text(`거래명세서 (${printData.header.clientCompany || ""})`, marginX, marginY + 6);
+          position = marginY + 10;
+        }
+      }
+
+      const fileName = `${printData.header.clientCompany || "거래처"}_${printData.header.salesId || "판매"}_거래명세서_${dayjs().format("YYYYMMDD")}.pdf`
+        .replace(/[\\/:*?"<>|]/g, "_");
+      pdf.save(fileName);
+    } catch (e) {
+      console.error(e);
+      message.error("거래명세서 PDF 생성 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <Modal
       title={isEditing ? "판매 상세 및 수정" : "신규 판매 등록"}
@@ -461,6 +547,9 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
             <Button onClick={onClose} style={{ marginRight: 8 }}>
               취소
             </Button>
+            <Button onClick={handleExportSlipPDF} style={{ marginRight: 8 }}>
+              거래명세서 PDF 
+            </Button>
             <Button type="primary" htmlType="submit">
               {isEditing ? "수정" : "등록"}
             </Button>
@@ -468,6 +557,7 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
         </Form>
       </Spin>
 
+      {/* 거래처/주문 검색 모달 */}
       <ClientSearchModal
         open={isClientModalOpen}
         onClose={() => setIsClientModalOpen(false)}
@@ -479,7 +569,6 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
           setIsClientModalOpen(false);
         }}
       />
-
       <OrderSearchModal
         open={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
@@ -488,8 +577,109 @@ const SalesModal = ({ open, onClose, salesData, onRefresh }) => {
           setIsOrderModalOpen(false);
         }}
       />
+
+      {/* ⬇️ 거래명세서 캡처용 숨김 출력 레이아웃 */}
+      <div style={{ position: "fixed", left: -99999, top: 0 }}>
+        <div ref={printRef} style={{ width: 794, background: "#fff", padding: 16 }}>
+          <h2 style={{ margin: 0, marginBottom: 8 }}>거래명세서</h2>
+          {/* ───── 상단: 좌측 회사정보 / 우측 서명란 ───── */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 12,
+  }}
+>
+  {/* 좌측: 회사(공급자) 정보 */}
+  <div style={{ flex: "0 0 60%", fontSize: 11, lineHeight: 1.7 }}>
+    <div><b>공급자 상호</b>: 비즈메이트</div>
+    <div><b>사업자번호</b>: 132-86-158471</div>
+    <div><b>주소</b>: 서울특별시 중구 남대문로 120</div>
+    <div><b>대표자</b>: 왕찬웅</div>
+  </div>
+
+  {/* 우측: 서명란 */}
+  <div style={{ flex: "0 0 38%", textAlign: "center" }}>
+    <div
+      style={{
+        border: "1px solid #999",
+        height: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+      }}
+    >
+      서명(인)
+    </div>
+    <div style={{ fontSize: 10, marginTop: 6, color: "#666" }}>
+      서명 또는 직인
+    </div>
+  </div>
+</div>
+
+          <div style={{ fontSize: 12, marginBottom: 12 }}>
+            <div>거래처: {printData.header.clientCompany || ""} ({printData.header.clientId || ""})</div>
+            <div>프로젝트: {printData.header.projectName || ""} {printData.header.projectId ? `(${printData.header.projectId})` : ""}</div>
+            <div>판매번호: {printData.header.salesId || ""} · 거래일자: {printData.header.salesDate ? dayjs(printData.header.salesDate).format("YYYY-MM-DD") : ""}</div>
+          </div>
+
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr>
+                <th style={th}>품목명</th>
+                <th style={th}>수량</th>
+                <th style={th}>단가(공급)</th>
+                <th style={th}>부가세</th>
+                <th style={th}>금액</th>
+                <th style={th}>비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {printData.items.length === 0 ? (
+                <tr><td style={tdCenter} colSpan={6}>항목 없음</td></tr>
+              ) : (
+                printData.items.map((it, idx) => (
+                  <tr key={idx}>
+                    <td style={td}>{it.itemName || ""}</td>
+                    <td style={tdRight}>{currency(it.quantity)}</td>
+                    <td style={tdRight}>{currency(it.unitPrice)}</td>
+                    <td style={tdRight}>{currency(it.unitVat)}</td>
+                    <td style={tdRight}>{currency(it.lineTotal)}</td>
+                    <td style={td}>{it.itemNote || ""}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td style={{ ...tdRight, fontWeight: 600 }} colSpan={2}>합계</td>
+                <td style={{ ...tdRight, fontWeight: 600 }}>{currency(printData.supplySum)}</td>
+                <td style={{ ...tdRight, fontWeight: 600 }}>{currency(printData.vatSum)}</td>
+                <td style={{ ...tdRight, fontWeight: 600 }}>{currency(printData.totalSum)}</td>
+                <td style={td}></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          {printData.header.salesNote ? (
+            <>
+              <Divider />
+              <div style={{ fontSize: 11 }}>비고: {printData.header.salesNote}</div>
+            </>
+          ) : null}
+        </div>
+      </div>
     </Modal>
   );
 };
+
+// 인쇄용 테이블 스타일
+const border = "1px solid #999";
+const th = { border, padding: "6px 8px", background: "#f5f5f5", textAlign: "center" };
+const td = { border, padding: "6px 8px", verticalAlign: "top" };
+const tdCenter = { ...td, textAlign: "center" };
+const tdRight = { ...td, textAlign: "right", whiteSpace: "nowrap" };
 
 export default SalesModal;
