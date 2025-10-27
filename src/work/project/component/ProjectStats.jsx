@@ -19,8 +19,8 @@ const ProjectStats = ({ projects = [], month }) => {
       dayjs(p.endDate).diff(today, "day") <= 7 &&
       dayjs(p.endDate).isAfter(today)
   ).length;
-  const completed = projects.filter((p) => p.status === "COMPLETED").length;
-  const canceled = projects.filter((p) => p.status === "CANCELED").length;
+  // const completed = projects.filter((p) => p.status === "COMPLETED").length;
+  // const canceled = projects.filter((p) => p.status === "CANCELED").length;
   
   const avgProgress =
     totalCount > 0

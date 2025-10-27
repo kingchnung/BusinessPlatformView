@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, Card, Row, Col, Typography, Space, message } from "antd";
+import { Button, Card, Row, Col, Typography, Space, } from "antd";
 import dayjs from "dayjs";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { fetchActiveProjects } from "../../../api/work/projectApi";

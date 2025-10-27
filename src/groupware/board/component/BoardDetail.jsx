@@ -20,6 +20,22 @@ import {
 
 const { TextArea } = Input;
 
+function extractAuthorities(u) {
+  if (!u) return [];
+  const src = u.authorities ?? u.roles ?? [];
+  if (Array.isArray(src)) {
+    return src
+      .map(a => (typeof a === "string" ? a : a?.authority))
+      .filter(Boolean)
+      .map(s => s.toUpperCase());
+  }
+  if (typeof src === "string") {
+    return src.split(",").map(s => s.trim().toUpperCase());
+  }
+  return [];
+}
+
+
 const BoardDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,6 +46,12 @@ const BoardDetail = () => {
 
 
   const user = JSON.parse(localStorage.getItem("user")) || null;
+
+  const isAdminGlobal = useMemo(() => {
+    const auths = extractAuthorities(user);
+    return auths.some(a => ["ROLE_ADMIN", "ROLE_CEO", "SYS:ADMIN"].includes(a));
+  }, [user]);
+
 
   // 🔹 서버에서 canEdit / canDelete 안 주는 경우 fallback 계산
   const computedPerm = useMemo(() => {
@@ -58,7 +80,7 @@ const BoardDetail = () => {
       const commentList = await getComments(id);
       setComments(commentList || []);
     } catch (e) {
-      message.error("게시글을 불러오지 못했습니다.");
+      message.error("댓글을 불러오지 못했습니다.");
       console.error(e);
     }
   }, [id]);
@@ -175,27 +197,40 @@ const BoardDetail = () => {
       <Card title="댓글" style={{ marginTop: 24 }}>
         <List
           dataSource={comments}
-          renderItem={(item) => (
-            <List.Item
-              actions={[
-                <Popconfirm
-                  key="delete"
-                  title="댓글을 삭제하시겠습니까?"
-                  okText="삭제"
-                  cancelText="취소"
-                  onConfirm={() => handleDeleteComment(item.commentNo)}
-                >
-                  <Button type="link" danger>삭제</Button> {/* 🔹 a → Button(link)로 변경 */}
-                </Popconfirm>,
-              ]}
-            >
-              <List.Item.Meta
-                title={`${item.authorName} (${item.createdAt?.substring(0, 10) || ""})`}
-                description={item.content}
-              />
-            </List.Item>
-          )}
+          renderItem={(item) => {
+            const isAuthor = !!(user?.username && item?.authorId === user.username);
+            const canDeleteThisComment = isAdminGlobal || isAuthor; // ✅ 관리자 or 본인만
+
+            // 익명/실명 표시는 서버가 내려준 authorName 그대로 사용
+            const displayName = item.authorName;
+
+            return (
+              <List.Item
+                actions={
+                  canDeleteThisComment
+                    ? [
+                      <Popconfirm
+                        key="delete"
+                        title="댓글을 삭제하시겠습니까?"
+                        okText="삭제"
+                        cancelText="취소"
+                        onConfirm={() => handleDeleteComment(item.commentNo)}
+                      >
+                        <Button type="link" danger>삭제</Button>
+                      </Popconfirm>,
+                    ]
+                    : []
+                }
+              >
+                <List.Item.Meta
+                  title={`${displayName} (${item.createdAt?.substring(0, 10) || ""})`}
+                  description={item.content}
+                />
+              </List.Item>
+            );
+          }}
         />
+
         <Space.Compact style={{ width: "100%", marginTop: 12 }}>
           <TextArea
             rows={2}

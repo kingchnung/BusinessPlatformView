@@ -56,7 +56,7 @@ const ProjectListPage = () => {
       title: "프로젝트명",
       dataIndex: "projectName",
       key: "projectName",
-      render: (text, record) => <Text strong>{text}</Text>,
+      render: (text) => <Text strong>{text}</Text>,
     },
     {
     title: "생성일",
