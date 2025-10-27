@@ -20,6 +20,7 @@ const EmployeeCardItem = ({ emp }) => {
         boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
       }}
       onClick={() => navigate(`/hr/employee/detail/${emp.empId}`)}
+      /*
       cover={
         <div
           style={{
@@ -31,9 +32,11 @@ const EmployeeCardItem = ({ emp }) => {
           }}
         >
           <UserOutlined style={{ fontSize: 48, color: "#999" }} />
-        </div>
+         </div>
       }
+         */
     >
+      
       <Card.Meta
         title={emp.empName || "이름 없음"}
         description={

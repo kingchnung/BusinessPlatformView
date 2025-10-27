@@ -40,7 +40,7 @@ const MainDashboard = () => {
   return (
     <div style={{ height: "100%", padding: "8px" }}>
       {/* 상단 섹션: 매출, 전자결재, 내 정보 */}
-      <Row gutter={[16, 16]} style={{ height: "55%" }}>
+      <Row gutter={[16, 16]} >
         {/* 매출현황 */}
         <Col xs={24} md={15} style={{ minWidth: 0 }}>
           <Card
@@ -73,10 +73,16 @@ const MainDashboard = () => {
       </Row>
 
       {/* 하단 섹션: 프로젝트 진행률 + 공지사항 */}
-      <Row gutter={[16, 16]} style={{ height: "45%" }}>
+      <Row gutter={[16, 16]} >
         {/* 프로젝트 진행률 */}
         <Col xs={24} md={14}>
-          <Card title="💼 프로젝트 진행 현황" bordered={false} style={{ borderRadius: "12px", height: "100%", overflow: "hidden" }}>
+          <Card title="💼 프로젝트 진행 현황" 
+          extra={
+              <Button type="link" onClick={() => navigate("/work")}>
+                프로젝트 더보기 →
+              </Button>
+            }
+          bordered={false} style={{ borderRadius: "12px", height: "100%", overflow: "hidden" }}>
             {loading ? (
               <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Spin />
@@ -84,11 +90,7 @@ const MainDashboard = () => {
             ) : (
               <ProjectGanttChart data={projectData} month={currentMonth} />
             )}
-            <div style={{ textAlign: "right", marginTop: 8 }}>
-              <Button type="link" onClick={() => navigate("/work")}>
-                프로젝트 더보기 →
-              </Button>
-            </div>
+            
           </Card>
         </Col>
 

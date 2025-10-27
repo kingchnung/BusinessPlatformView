@@ -99,18 +99,18 @@ export const adminMenuConfig = [
   // -------------------------
   // ② 게시판 관리
   // -------------------------
-  {
-    key: "boardAdmin",
-    label: "게시판 관리",
-    role: "ROLE_ADMIN",
-    children: [
-      {
-        key: "/admin/boards/manage",
-        label: "게시글 관리",
-        path: "/admin/boards/manage",
-        role: "ROLE_ADMIN",
-      }
-    ],
-  },
+  // {
+  //   key: "boardAdmin",
+  //   label: "게시판 관리",
+  //   role: "ROLE_ADMIN",
+  //   children: [
+  //     {
+  //       key: "/admin/boards/manage",
+  //       label: "게시글 관리",
+  //       path: "/admin/boards/manage",
+  //       role: "ROLE_ADMIN",
+  //     }
+  //   ],
+  // },
 
 ];

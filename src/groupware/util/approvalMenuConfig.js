@@ -8,7 +8,7 @@ export const approvalMenuConfig = [
       {
         key: "all",
         label: "전체 문서",
-        path: "/approvals?status=ALL",
+        path: "/approvals",
       },
       {
         key: "draft",

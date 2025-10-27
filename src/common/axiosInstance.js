@@ -4,7 +4,7 @@ import { message } from "antd";
 // ✅ 1️⃣ Axios 인스턴스 생성
 const axiosInstance = axios.create({
   baseURL: "http://localhost:8080/api",
-  headers: { "Content-Type": "application/json",  },
+  // headers: { "Content-Type": "application/json",  },
 });
 
 // ✅ 2️⃣ 요청 인터셉터 - JWT 자동 첨부

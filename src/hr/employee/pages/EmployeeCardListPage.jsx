@@ -11,7 +11,7 @@ const EmployeeCardListPage = () => {
   const dispatch = useDispatch();
   const { employees = [], loading } = useSelector((state) => state.hr || {});
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 9;
+  const pageSize = 12;
 
   useEffect(() => {
     dispatch(getEmployees());
@@ -64,7 +64,7 @@ const EmployeeCardListPage = () => {
           {currentData && currentData.length > 0 ?(
           currentData.map((emp) => 
             emp ? (
-            <Col key={emp.empId} xs={24} sm={12} md={8} lg={8}>
+            <Col key={emp.empId} xs={24} sm={12} md={6} lg={6}>
               <EmployeeCardItem emp={emp} />
             </Col>
           ) : null

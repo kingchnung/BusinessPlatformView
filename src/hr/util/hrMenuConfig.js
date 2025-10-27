@@ -83,24 +83,24 @@ export const hrMenuConfig = [
    
     ],
   },
-  {
-  key: "attendance",
-  label: "근태관리",
-  path: "/hr/attendance", // 실제 페이지는 아직 없음
-  note: "2차 개발 준비중",
-},
-{
-  key: "leave",
-  label: "휴가관리",
-  path: "/hr/leave",
-  note: "2차 개발 준비중",
-},
-{
-  key: "payroll",
-  label: "급여관리",
-  path: "/hr/payroll",
-  note: "2차 개발 준비중",
-},
+//   {
+//   key: "attendance",
+//   label: "근태관리",
+//   path: "/hr/attendance", // 실제 페이지는 아직 없음
+//   note: "2차 개발 준비중",
+// },
+// {
+//   key: "leave",
+//   label: "휴가관리",
+//   path: "/hr/leave",
+//   note: "2차 개발 준비중",
+// },
+// {
+//   key: "payroll",
+//   label: "급여관리",
+//   path: "/hr/payroll",
+//   note: "2차 개발 준비중",
+// },
   {
     key: "account",
     label : "계정 관리",

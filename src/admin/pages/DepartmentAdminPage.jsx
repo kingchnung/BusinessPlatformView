@@ -9,9 +9,9 @@ import {
   createDepartment,
   updateDepartment,
   permanentlyDeleteDepartment,
-  assignDepartmentManager,
+  
 } from '../../api/hr/departmentsAPI';
-import axiosInstance from '../../common/axiosInstance';
+
 
 const { Title } = Typography;
 
@@ -35,10 +35,7 @@ const DepartmentAdminPage = () => {
   const [form] = Form.useForm();
 
   // ✅ 부서장 임명 모달 관련 상태
-  const [managerModalVisible, setManagerModalVisible] = useState(false);
-  const [employeeList, setEmployeeList] = useState([]);
-  const [selectedManager, setSelectedManager] = useState(null); // 선택된 매니저의 empId
-  const [managerLoading, setManagerLoading] = useState(false);
+  
 
   const getManagerName = (managerId) => {
     if (!managerId || empLoading) return "-";
@@ -144,60 +141,8 @@ const DepartmentAdminPage = () => {
     });
   };
 
-  // ✅ 부서장 관련 로직 ==========================================================
-  const fetchEmployeesByDept = async (deptId) => {
-    setManagerLoading(true);
-    try {
-      // 💡 참고: 해당 부서 직원만 불러오는 것보다,
-      // 전체 직원(또는 특정 직급 이상)을 불러오는 것이 부서장 임명에는 더 적합할 수 있습니다.
-      // 현재는 로직을 유지합니다. (필요시 /api/employees/all 등으로 변경)
-      const res = await axiosInstance.get(`/employees/byDepartment/${deptId}`);
-      setEmployeeList(res.data || []);
-    } catch (err) {
-      message.error('직원 목록을 불러오지 못했습니다.');
-    } finally {
-      setManagerLoading(false);
-    }
-  };
+  
 
-  // 👈 4. '부서장 임명' 모달 표시 함수 수정
-  const showManagerModal = async (department) => {
-    setEditingDept(department); // 👈 현재 수정할 부서 정보를 state에 저장
-    await fetchEmployeesByDept(department.deptId);
-    
-    // 👈 (개선) department 객체에 managerId (매니저의 empId)가 있다는 가정 하에,
-    //    기존 부서장을 기본값으로 선택합니다. 필드명은 실제 데이터에 맞게 조정하세요.
-    setSelectedManager(department.managerId || null); 
-    
-    setManagerModalVisible(true);
-  };
-
-  const handleAssignManager = async () => {
-    if (!selectedManager) {
-      message.warning('부서장을 선택해주세요.');
-      return;
-    }
-    
-    // editingDept가 설정되어 있으므로 deptId를 사용할 수 있습니다.
-    if (!editingDept) {
-      message.error('부서장 임명 대상 부서 정보가 없습니다.');
-      return;
-    }
-
-    try {
-      await assignDepartmentManager(editingDept.deptId, selectedManager);
-      message.success('부서장이 임명되었습니다.');
-      setManagerModalVisible(false);
-      await refetchDepartments();
-      
-      // 상태 초기화
-      setEditingDept(null);
-      setSelectedManager(null);
-    } catch (error) {
-      console.error('부서장 임명 중 오류:', error);
-      message.error('부서장 임명 중 오류가 발생했습니다.');
-    }
-  };
   // =========================================================================
 
   // ✅ 테이블 컬럼
@@ -225,9 +170,7 @@ const DepartmentAdminPage = () => {
           <Button type="link" onClick={() => showEditModal(record)}>
             수정
           </Button>
-          <Button type="link" onClick={() => showManagerModal(record)}>
-            부서장 임명
-          </Button>
+         
           <Button type="link" danger onClick={() => handlePermanentDelete(record.deptId)}>
             완전삭제
           </Button>
@@ -304,47 +247,7 @@ const DepartmentAdminPage = () => {
         </Form>
       </Modal>
 
-      {/* ✅ 부서장 임명 모달 */}
-      <Modal
-        title={`부서장 임명 - ${editingDept?.deptName || ''}`}
-        open={managerModalVisible}
-        onOk={handleAssignManager}
-        onCancel={() => setManagerModalVisible(false)}
-        okText="임명"
-        cancelText="취소"
-        width={600}
-      >
-        {managerLoading ? (
-          <Spin tip="직원 목록을 불러오는 중..." />
-        ) : (
-          <Table
-            dataSource={employeeList}
-            rowKey="empId"
-            rowSelection={{
-              type: 'radio',
-              selectedRowKeys: selectedManager ? [selectedManager] : [],
-              onChange: (selectedKeys) => setSelectedManager(selectedKeys[0]),
-            }}
-            columns={[
-              { title: '사번', dataIndex: 'empNo', key: 'empNo', width: '20%' },
-              { title: '이름', dataIndex: 'empName', key: 'empName', width: '25%' },
-              { title: '직급', dataIndex: 'positionName', key: 'positionName', width: '25%' },
-              {
-                title: '상태',
-                dataIndex: 'status',
-                key: 'status',
-                width: '20%',
-                render: (status) => (
-                  <Tag color={status === 'ACTIVE' ? 'green' : 'red'}>
-                    {status === 'ACTIVE' ? '재직' : '퇴직'}
-                  </Tag>
-                ),
-              },
-            ]}
-            pagination={{ pageSize: 5 }}
-          />
-        )}
-      </Modal>
+      
     </Card>
   );
 };
