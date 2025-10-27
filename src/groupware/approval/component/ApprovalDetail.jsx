@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
+import axiosInstance from "../../../common/axiosInstance";
 
 
 const { Title, Text } = Typography;
