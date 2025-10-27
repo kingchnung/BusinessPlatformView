@@ -24,6 +24,22 @@ const ProjectDetailPage = () => {
 
   const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
 
+  // ▼ ProjectDetailPage 컴포넌트 내부 (userInfo 선언 아래쪽 아무데나)
+  const roles = Array.isArray(userInfo?.roles)
+    ? userInfo.roles
+    : (userInfo?.role ? [userInfo.role] : []);
+
+  const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_CEO");
+  const isManager = roles.includes("ROLE_MANAGER");
+
+  // userId 타입이 문자열일 수 있으니 숫자로 비교 안전하게
+  const currentUserId = Number(userInfo?.userId);
+  const authorUserId = Number(project?.author?.userId);
+  const isAuthor = !!authorUserId && currentUserId === authorUserId;
+
+  // 최종: ADMIN/CEO 는 무조건, MANAGER 는 본인 작성건만
+  const canEdit = isAdmin || (isManager && isAuthor);
+
   // ✅ 프로젝트 상세 조회 (외부에서도 호출 가능하게 useCallback)
   const fetchProject = useCallback(async () => {
     try {
@@ -61,16 +77,16 @@ const ProjectDetailPage = () => {
 
   // ✅ 현재 로그인 사용자가 이 프로젝트 부서의 팀장/PM인지 판단
   const canAddMember =
-  userInfo?.deptCode === project?.department?.deptCode &&
-  (
-     (Array.isArray(userInfo?.roles) &&
-      (userInfo.roles.includes("ROLE_MANAGER") ||
-       userInfo.roles.includes("ROLE_ADMIN") ||
-       userInfo.roles.includes("ROLE_CEO")))
-    ||
-    (typeof userInfo?.role === "string" &&
-      ["ROLE_MANAGER", "ROLE_ADMIN", "ROLE_CEO"].includes(userInfo.role))
-  );
+    userInfo?.deptCode === project?.department?.deptCode &&
+    (
+      (Array.isArray(userInfo?.roles) &&
+        (userInfo.roles.includes("ROLE_MANAGER") ||
+          userInfo.roles.includes("ROLE_ADMIN") ||
+          userInfo.roles.includes("ROLE_CEO")))
+      ||
+      (typeof userInfo?.role === "string" &&
+        ["ROLE_MANAGER", "ROLE_ADMIN", "ROLE_CEO"].includes(userInfo.role))
+    );
 
   // ✅ 구성원 추가 버튼 클릭 시
   const handleOpenAddMemberModal = () => {
@@ -96,6 +112,15 @@ const ProjectDetailPage = () => {
       >
         목록으로
       </Button>
+      {canEdit && (
+        <Button
+          type="primary"
+          style={{ marginLeft: 8 }}
+          onClick={() => navigate(`/work/project/edit/${project.projectId}`)}
+        >
+          수정
+        </Button>
+      )}
 
       {/* ✅ 프로젝트 상세 카드 */}
       <Card
@@ -111,7 +136,11 @@ const ProjectDetailPage = () => {
             {project.department?.deptName}
           </Descriptions.Item>
           <Descriptions.Item label="작성자">
-            {project.author?.username}
+            {project.author?.empName || project.author?.username || "-"}
+          </Descriptions.Item>
+
+          <Descriptions.Item label="담당자(PM)">
+            {project.pmName || "-"}
           </Descriptions.Item>
           <Descriptions.Item label="기간">
             {`${dayjs(project.startDate).format("YYYY.MM.DD")} ~ ${dayjs(
@@ -119,19 +148,27 @@ const ProjectDetailPage = () => {
             ).format("YYYY.MM.DD")}`}
           </Descriptions.Item>
           <Descriptions.Item label="상태">
-            <Tag
-              color={
-                project.status === "IN_PROGRESS"
-                  ? "green"
-                  : project.status === "PLANNING"
-                  ? "orange"
-                  : project.status === "COMPLETED"
-                  ? "blue"
-                  : "gray"
-              }
-            >
-              {project.status}
-            </Tag>
+            {(() => {
+              const statusMap = {
+                PLANNING: "기획중",
+                IN_PROGRESS: "진행중",
+                COMPLETED: "완료",
+                CANCELED: "종료",
+              };
+
+              const colorMap = {
+                PLANNING: "orange",
+                IN_PROGRESS: "green",
+                COMPLETED: "blue",
+                CANCELED: "gray",
+              };
+
+              const statusKey = project.status?.toUpperCase() || "PLANNING";
+              const label = statusMap[statusKey] || "미정";
+              const color = colorMap[statusKey] || "default";
+
+              return <Tag color={color}>{label}</Tag>;
+            })()}
           </Descriptions.Item>
           <Descriptions.Item label="목표" span={2}>
             {project.projectGoal || "-"}

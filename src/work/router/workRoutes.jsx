@@ -9,6 +9,8 @@ const ProjectOverview = lazy(() => import("../project/pages/ProjectOverviewPage"
 const ProjectDetail = lazy(() => import("../project/pages/ProjectDetailPage"));     // 조회
 const ProjectEdit = lazy(() => import("../project/pages/ProjectEditPage"));         // 수정
 const ProjectList = lazy(() => import("../project/pages/ProjectListPage"));     // 생성
+const UserProjectListPage = lazy(() => import("../project/pages/UserProjectListPage"));
+const ProjectEditFormPage = lazy(() => import("../project/pages/ProjectEditFormPage"));
 
 // ----------------------------
 // 📁 업무 관리 (Task)
@@ -49,18 +51,26 @@ const workRoutes = [
     path: "project/create",
     element: <Suspense fallback={Loading}><ProjectList /></Suspense>,
   },
+  {
+    path: "/work/project",
+    element: <Suspense fallback={Loading}><UserProjectListPage /></Suspense>,
+  },
+  {
+    path: "project/edit/:projectId",
+    element: <Suspense fallback={Loading}><ProjectEditFormPage /></Suspense>,
+  },
 
-//   // ----------------------------
-//   // 업무(Task) 관리
-//   // ----------------------------
-//   {
-//     path: "task/my",
-//     element: <Suspense fallback={Loading}><MyTaskPage /></Suspense>,
-//   },
-//   {
-//     path: "task/assign",
-//     element: <Suspense fallback={Loading}><TaskAssignPage /></Suspense>,
-//   },
+  //   // ----------------------------
+  //   // 업무(Task) 관리
+  //   // ----------------------------
+  //   {
+  //     path: "task/my",
+  //     element: <Suspense fallback={Loading}><MyTaskPage /></Suspense>,
+  //   },
+  //   {
+  //     path: "task/assign",
+  //     element: <Suspense fallback={Loading}><TaskAssignPage /></Suspense>,
+  //   },
 
   // ----------------------------
   // (선택) 향후 확장용
