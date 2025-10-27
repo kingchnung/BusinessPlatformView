@@ -18,6 +18,8 @@
     "@reduxjs/toolkit": "^2.9.0",
     "antd": "^5.27.4",
     "axios": "^1.12.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
     "jwt-decode": "^4.0.0",
     "pdfjs-dist": "^5.4.296",
     "query-string": "^9.3.1",
