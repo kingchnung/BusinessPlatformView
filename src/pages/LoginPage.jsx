@@ -10,16 +10,17 @@ const { Title, Text } = Typography;
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(""); // ✅ 로그인 실패 이유 표시용
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
     setLoading(true);
+    setErrorMsg(""); // 초기화
     try {
-      // ✅ 1. 분리된 API 함수를 호출하여 로그인 로직을 위임합니다.
       const { user, token, refreshToken } = await loginUser(values);
-
       const decoded = jwtDecode(token);
+
       const userWithDept = {
         ...user,
         deptName: decoded.deptName || "소속 부서 미지정",
@@ -29,17 +30,38 @@ export default function Login() {
         username: decoded.username,
       };
 
-      // ✅ 2. 성공 후 UI 관련 처리만 담당합니다.
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(userWithDept));
       dispatch(loginSuccess({ user: userWithDept, token }));
 
-      message.success(`${userWithDept.empName || userWithDept.username}님 환영합니다!`);
-      navigate("/main"); // 메인 페이지로 이동
-
+      message.success(`${userWithDept.deptName} ${userWithDept.empName}님 환영합니다 👋`);
+      navigate("/main");
     } catch (err) {
-      message.error("아이디 또는 비밀번호가 올바르지 않습니다.", {err});
+      console.error("로그인 실패:", err);
+      const error =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "로그인에 실패했습니다.";
+
+      // ✅ 기존 모달에서 처리하던 오류 메시지 로직을 그대로 적용
+      let displayMsg = "로그인에 실패했습니다.";
+      if (error.includes("비밀번호")) {
+        displayMsg = error.includes("남은 시도")
+          ? `❌ ${error}`
+          : "❌ 비밀번호가 일치하지 않습니다. 다시 확인해주세요.";
+      } else if (error.includes("사용자를 찾을 수 없습니다")) {
+        displayMsg = "❌ 아이디를 확인해주세요. 존재하지 않는 계정입니다.";
+      } else if (
+        error.includes("잠금") ||
+        error.includes("잠겨") ||
+        err.response?.data?.error === "LOGIN_FAILED"
+      ) {
+        displayMsg = "🔒 계정이 잠겼습니다. 관리자에게 문의하세요.";
+      }
+
+      setErrorMsg(displayMsg);
     } finally {
       setLoading(false);
     }
@@ -50,17 +72,11 @@ export default function Login() {
       <Card style={styles.card} bordered={false} hoverable>
         {/* 로고 + 타이틀 */}
         <div style={styles.logoContainer}>
-          <img
-            src="/logo_bizmate.png"
-            alt="BizMate Logo"
-            style={styles.logo}
-          />
+          <img src="/logo_bizmate.png" alt="BizMate Logo" style={styles.logo} />
           <Title level={3} style={styles.title}>
             BizMate 로그인
           </Title>
-          <Text type="secondary">
-            기업을 위한 통합 관리 플랫폼
-          </Text>
+          <Text type="secondary">기업을 위한 통합 관리 플랫폼</Text>
         </div>
 
         {/* 로그인 폼 */}
@@ -69,6 +85,8 @@ export default function Login() {
             label="아이디"
             name="username"
             rules={[{ required: true, message: "아이디를 입력하세요." }]}
+            validateStatus={errorMsg.includes("아이디") ? "error" : ""}
+            help={errorMsg.includes("아이디") ? errorMsg : ""}
           >
             <Input size="large" placeholder="아이디" />
           </Form.Item>
@@ -77,6 +95,20 @@ export default function Login() {
             label="비밀번호"
             name="password"
             rules={[{ required: true, message: "비밀번호를 입력하세요." }]}
+            validateStatus={
+              errorMsg.includes("비밀번호") ||
+              errorMsg.includes("남은 시도") ||
+              errorMsg.includes("잠금")
+                ? "error"
+                : ""
+            }
+            help={
+              errorMsg.includes("비밀번호") ||
+              errorMsg.includes("남은 시도") ||
+              errorMsg.includes("잠금")
+                ? errorMsg
+                : ""
+            }
           >
             <Input.Password size="large" placeholder="비밀번호" />
           </Form.Item>
@@ -91,6 +123,19 @@ export default function Login() {
           >
             로그인
           </Button>
+
+          {/* ✅ 비밀번호 재설정 안내 */}
+          <div style={{ textAlign: "right", marginTop: "8px" }}>
+            <Button
+              type="link"
+              onClick={() => {
+                message.info("비밀번호 재설정 페이지로 이동합니다.");
+                navigate("/find-password"); // 새로운 페이지로 이동하도록 처리
+              }}
+            >
+              비밀번호를 잊으셨나요?
+            </Button>
+          </div>
         </Form>
 
         {/* 푸터 영역 */}

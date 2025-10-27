@@ -18,6 +18,7 @@ const DepartmentAssign = lazy(()=>import("../department/pages/DepartmentAssignPa
 const DepartmentPromotion = lazy(()=>import("../department/pages/DepartmentPromosionPage"));
 const AccountPwEdit = lazy(()=>import("../employee/pages/EmployeePWEditPage"));
 const EmployeeAdminView = lazy(()=>import("../employee/pages/EmployeeAdminPage"));
+const DummyPage = lazy(()=> import("../hrcommon/DummyPage"));
 
 // hr 기능과 관련된 라우트 배열 정의
 
@@ -79,6 +80,18 @@ const hrRoutes = [
     path: "employee/adminview",
     element : <Suspense fallback={Loading}><EmployeeAdminView/></Suspense>
   },
+  {
+  path: "attendance",
+  element: <Suspense fallback={Loading}><DummyPage messageText="근태관리 2차 개발 준비중입니다." /></Suspense>,
+},
+{
+  path: "leave",
+  element: <Suspense fallback={Loading}><DummyPage messageText="휴가관리 2차 개발 준비중입니다." /></Suspense>,
+},
+{
+  path: "salary",
+  element: <Suspense fallback={Loading}><DummyPage messageText="급여관리 2차 개발 준비중입니다." /></Suspense>,
+},
 
 ];
 

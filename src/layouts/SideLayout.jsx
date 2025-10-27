@@ -8,12 +8,9 @@ import { hrMenuConfig } from "../hr/util/hrMenuConfig";
 import { salesMenuConfig } from "../sales/util/salesMenuConfig";
 import { mainMenuConfig } from "./mainMenuConfig";
 import { workMenuConfig } from "../work/util/wokMenuConfig";
-
-// HR 메뉴 경로 조정 함수
+import { adminMenuConfig } from "../admin/util/adminMenuConfig";
 import { applyRoleBasedMenuPath } from "../hr/util/applyRoleBasedMenuPath";
 import "./commonLayout_temp.css";
-import { adminMenuConfig } from "../admin/util/adminMenuConfig";
-
 
 const { Sider } = Layout;
 
@@ -27,12 +24,11 @@ const ROLE_LEVELS = {
   ROLE_EMPLOYEE: 1,
 };
 
-/** 사용자의 최고 권한 레벨 반환 */
 const getUserHighestLevel = (roles = []) =>
   roles.reduce((max, role) => Math.max(max, ROLE_LEVELS[role] || 0), 0);
 
 /* ========================================================
- ✅ 2️⃣ 메뉴 필터링 (권한 기반)
+ ✅ 2️⃣ 메뉴 필터링
 ======================================================== */
 const filterMenusByRole = (menuConfig, userRoles = []) => {
   const userLevel = getUserHighestLevel(userRoles);
@@ -40,7 +36,6 @@ const filterMenusByRole = (menuConfig, userRoles = []) => {
 
   return menuConfig
     .map((menu) => {
-      // 하위 메뉴 재귀 필터링
       const children = menu.children
         ? filterMenusByRole(menu.children, userRoles)
         : undefined;
@@ -48,7 +43,6 @@ const filterMenusByRole = (menuConfig, userRoles = []) => {
       const requiredLevel = menu.role ? ROLE_LEVELS[menu.role] || 0 : 0;
       const hasAccess = userLevel >= requiredLevel;
 
-      // 접근 불가 or 자식 없는 상위 폴더 제외
       if (!hasAccess) return null;
       if (children && children.length === 0 && !menu.path) return null;
 
@@ -58,7 +52,7 @@ const filterMenusByRole = (menuConfig, userRoles = []) => {
 };
 
 /* ========================================================
- ✅ 3️⃣ 경로 기반 메뉴 탐색 유틸
+ ✅ 3️⃣ 메뉴 탐색 유틸
 ======================================================== */
 const getMenuConfig = (pathname) => {
   if (pathname.startsWith("/hr")) return hrMenuConfig;
@@ -126,13 +120,12 @@ const SideLayout = () => {
     return [];
   }, []);
 
-  /* ✅ 현재 경로 기반 메뉴 결정 */
+  /* ✅ 현재 메뉴 구조 결정 */
   const baseMenuConfig = useMemo(
     () => getMenuConfig(location.pathname),
     [location.pathname]
   );
 
-  /* ✅ HR 전용 메뉴 경로 조정 */
   const adjustedMenuConfig = useMemo(() => {
     if (baseMenuConfig === hrMenuConfig && typeof applyRoleBasedMenuPath === "function") {
       return applyRoleBasedMenuPath(baseMenuConfig, userRoles);
@@ -140,32 +133,45 @@ const SideLayout = () => {
     return baseMenuConfig;
   }, [baseMenuConfig, userRoles]);
 
-  /* ✅ 권한 기반 메뉴 필터링 */
   const filteredMenu = useMemo(
     () => filterMenusByRole(adjustedMenuConfig, userRoles),
     [adjustedMenuConfig, userRoles]
   );
 
-  /* ✅ 메뉴 items 변환 */
+  /* ✅ 메뉴 items 변환 (관리자 메뉴 색상 표시) */
   const mapMenuItems = (items) =>
-    items.map((item) => ({
-      key: item.key,
-      icon: item.icon,
-      label: item.label,
-      children: item.children ? mapMenuItems(item.children) : undefined,
-    }));
+    items.map((item) => {
+      const isAdminMenu =
+        item.role === "ROLE_ADMIN" || item.role === "ROLE_CEO" || item.role === "ROLE_MANAGER";
+
+      return {
+        key: item.key,
+        icon: item.icon,
+        label: (
+          <span style={isAdminMenu ? { color: "tomato", fontWeight: 600 } : {}}>
+            {item.label}
+          </span>
+        ),
+        children: item.children ? mapMenuItems(item.children) : undefined,
+      };
+    });
 
   const menuItems = useMemo(() => mapMenuItems(filteredMenu), [filteredMenu]);
 
-  /* ✅ 선택/열림 상태 계산 */
+  /* ✅ 선택 상태 */
   const selectedKeys = useMemo(
     () => getSelectedKeys(location.pathname, filteredMenu),
     [location.pathname, filteredMenu]
   );
 
+  /* ✅ 자동 open 처리 + 클릭 유지 */
   useEffect(() => {
-    const keys = getOpenKeys(location.pathname, filteredMenu);
-    setOpenKeys(keys);
+    const autoKeys = getOpenKeys(location.pathname, filteredMenu);
+    setOpenKeys((prev) => {
+      // 중복 방지 & 기존 오픈된 메뉴 유지
+      const merged = Array.from(new Set([...prev, ...autoKeys]));
+      return merged;
+    });
   }, [location.pathname, filteredMenu]);
 
   /* ✅ 메뉴 클릭 시 이동 */
@@ -183,8 +189,7 @@ const SideLayout = () => {
       return false;
     };
 
-    findPathByKey(baseMenuConfig);
-
+    findPathByKey(filteredMenu);
     if (targetPath) navigate(targetPath);
     else console.warn("경로를 찾을 수 없습니다:", key);
   };
@@ -195,7 +200,7 @@ const SideLayout = () => {
         mode="inline"
         items={menuItems}
         openKeys={openKeys}
-        onOpenChange={setOpenKeys}
+        onOpenChange={(keys) => setOpenKeys(keys)} // ✅ 수동 열기 반영
         selectedKeys={selectedKeys}
         onClick={handleMenuClick}
       />
