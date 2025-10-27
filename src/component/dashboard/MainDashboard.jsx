@@ -1,16 +1,41 @@
-import React from "react";
-import { Row, Col, Card } from "antd";
+import React, { useEffect, useState } from "react";
+import { Row, Col, Card, Spin, Button,  } from "antd";
 import NoticeBoardCard from "./NoticeBoardCard";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+// import { useSelector } from "react-redux";
 import MyInfoCard from "../../hr/employee/components/MyInfoCard";
 import ApprovalSummaryCard from "./ApprovalSummaryCard";
+import ProjectGanttChart from "../../work/project/component/ProjectGanttChart";
+import dayjs from "dayjs";
+import axiosInstance from "../../common/axiosInstance";
 import SalesMiniLineChart from "../../sales/components/SalesMiniLineChart";
 
 
 const MainDashboard = () => {
 
-  const { userInfo } = useSelector((state) => state.auth);
+  // const { userInfo } = useSelector((state) => state.auth);
+
+  const [projectData, setProjectData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const currentMonth = dayjs();
+  const navigate = useNavigate();
+
+  const fetchActiveProjects = async () => {
+    try {
+      const res = await axiosInstance.get("/projects"); // 진행 중 프로젝트 조회
+      console.log("📋 진행 중 프로젝트 목록:", res.data);
+      setProjectData(res.data || []);
+    } catch (error) {
+      console.error("프로젝트 목록 조회 실패:", error);
+      setProjectData([]); // 실패 시 빈 배열
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchActiveProjects();
+  }, []);
+
 
   return (
     <div style={{ height: "100%", padding: "8px" }}>
@@ -51,12 +76,19 @@ const MainDashboard = () => {
       <Row gutter={[16, 16]} style={{ height: "45%" }}>
         {/* 프로젝트 진행률 */}
         <Col xs={24} md={14}>
-          <Card
-            title="💼 프로젝트 진행 현황"
-            bordered={false}
-            style={{ borderRadius: "12px", height: "100%" }}
-          >
-            프로젝트별 진행률 그래프
+          <Card title="💼 프로젝트 진행 현황" bordered={false} style={{ borderRadius: "12px", height: "100%", overflow: "hidden" }}>
+            {loading ? (
+              <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Spin />
+              </div>
+            ) : (
+              <ProjectGanttChart data={projectData} month={currentMonth} />
+            )}
+            <div style={{ textAlign: "right", marginTop: 8 }}>
+              <Button type="link" onClick={() => navigate("/work")}>
+                프로젝트 더보기 →
+              </Button>
+            </div>
           </Card>
         </Col>
 

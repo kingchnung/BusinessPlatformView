@@ -1,31 +1,32 @@
 import React from "react";
 import { Menu, Layout } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // ✅ 추가
 import LoginSection from "../component/LoginSection";
 
 const { Header } = Layout;
 
 const getTopMenuKey = (pathname) => {
-  if (pathname.startsWith('/hr')) return '/hr';
-  if (pathname.startsWith('/sales')) return '/sales';
-  if (pathname.startsWith('/approvals')) return '/approvals';
-  if (pathname.startsWith('/communications')) return '/communications';
-  if (pathname.startsWith('/work')) return '/work';
-  if (pathname === '/' || pathname === '/main') return '/';
-  return '/';
+  if (pathname.startsWith('/hr')) return 'hr';
+  if (pathname.startsWith('/sales')) return 'sales';
+  if (pathname.startsWith('/approvals')) return 'approvals';
+  if (pathname.startsWith('/communications')) return 'boards';
+  if (pathname.startsWith('/work')) return 'work';
+  if (pathname.startsWith('/admin')) return 'admin';
+  return 'Main'; // 기본값
 };
 
 const HeaderLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ 현재 URL 추적
+  const currentKey = getTopMenuKey(location.pathname); // ✅ 현재 선택된 메뉴 계산
 
-  // ✅ 1. localStorage에서 사용자 정보를 가져옵니다.
+  // ✅ 사용자 권한 확인
   let userRoles = [];
   try {
     const storedUser = localStorage.getItem("user");
     if (storedUser) userRoles = JSON.parse(storedUser).roles || [];
   } catch (e) { console.error("사용자 정보 파싱 실패", e); }
 
-  // ✅ 2. 사용자가 관리자 권한(ADMIN 또는 CEO)을 가지고 있는지 확인합니다.
   const isAdmin = userRoles.includes("ROLE_ADMIN") || userRoles.includes("ROLE_CEO");
 
   const menuItems = [
@@ -36,22 +37,20 @@ const HeaderLayout = () => {
     { key: "approvals", label: "전자결재" },
     { key: "boards", label: "사내게시판" },
   ];
-  if (isAdmin){
-    menuItems.push({ key:"admin", label:"관리"});
-  }
+  if (isAdmin) menuItems.push({ key: "admin", label: "관리" });
 
   return (
     <Header
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between", // 🔹 로고-메뉴-로그인영역 균등 정렬
+        justifyContent: "space-between",
         background: "#001529",
         color: "#fff",
         padding: "0 24px",
       }}
     >
-      {/* 🔹 로고 영역 */}
+      {/* 🔹 로고 */}
       <div
         style={{
           color: "#fff",
@@ -66,11 +65,11 @@ const HeaderLayout = () => {
         BizMate
       </div>
 
-      {/* 🔹 메뉴 영역 */}
+      {/* 🔹 메뉴 */}
       <Menu
         theme="dark"
         mode="horizontal"
-        defaultSelectedKeys={["Main"]}
+        selectedKeys={[currentKey]} // ✅ 현재 경로 기반 포커스
         items={menuItems}
         style={{
           flex: 1,
@@ -79,7 +78,7 @@ const HeaderLayout = () => {
         onClick={({ key }) => navigate(`/${key.toLowerCase()}`)}
       />
 
-      {/* 🔹 로그인 / 로그아웃 영역 */}
+      {/* 🔹 로그인 섹션 */}
       <div style={{ marginLeft: "auto" }}>
         <LoginSection />
       </div>
