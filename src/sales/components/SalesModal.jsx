@@ -5,12 +5,12 @@ import {
 } from "antd";
 import { PlusOutlined, DeleteOutlined, SearchOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+// import jsPDF from "jspdf";
+// import html2canvas from "html2canvas";
 import { NOTO_SANS_KR_BASE64 } from "../../fonts/NotoSansKR-Variable.base64.js"; // ← 경로/파일명은 너의 생성 위치에 맞춰 유지
 import { getSales, registerSales, modifySales } from "../../api/sales/salesApi";
-import ClientSearchModal from "./ClientSearchModal";
-import OrderSearchModal from "./OrderSearchModal";
+import ClientSearchModal from "./ClientModal.jsx"
+import OrderSearchModal from "./OrderModal.jsx"
 
 const { Title, Text } = Typography;
 

@@ -27,14 +27,14 @@ export const workMenuConfig = [
       },
       {
         key: "projectEdit",
-        label: "프로젝트 관리", // ✅ 인원 배분 등 관리 기능
+        label: "프로젝트 멤버관리", // ✅ 인원 배분 등 관리 기능
         path: "/work/project/edit",
         role: "ROLE_MANAGER", // 매니저 이상 접근
         note: "프로젝트 인원·예산 수정 (관리자 전용)",
       },
       {
         key: "projectCreate",
-        label: "신규프로젝트", // ✅ 수동 신규 등록
+        label: "프로젝트 관리", // ✅ 수동 신규 등록
         path: "/work/project/create",
         role: "ROLE_MANAGER", // 매니저 이상 접근
         note: "전자결재 외 신규 프로젝트 생성 (관리자 전용)",
