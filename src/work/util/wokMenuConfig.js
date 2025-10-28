@@ -45,23 +45,23 @@ export const workMenuConfig = [
   // -------------------------
   // ② 업무 관리
   // -------------------------
-  {
-    key: "task",
-    label: "업무 관리",
-    children: [
-      {
-        key: "myTask",
-        label: "내 업무 관리", // ✅ 공용
-        path: "",
-        note: "담당 업무 조회 및 수정 (모든 사용자 접근 가능)",
-      },
-      {
-        key: "taskAssign",
-        label: "담당자 지정", // ✅ 관리자 전용 (임시)
-        path: "",
-        role: "ROLE_MANAGER", // 매니저 이상 접근
-        note: "업무 담당자 배정 기능 (관리자 전용, 추후 검토)",
-      },
-    ],
-  },
+  // {
+  //   key: "task",
+  //   label: "업무 관리",
+  //   children: [
+  //     {
+  //       key: "myTask",
+  //       label: "내 업무 관리", // ✅ 공용
+  //       path: "",
+  //       note: "담당 업무 조회 및 수정 (모든 사용자 접근 가능)",
+  //     },
+  //     {
+  //       key: "taskAssign",
+  //       label: "담당자 지정", // ✅ 관리자 전용 (임시)
+  //       path: "",
+  //       role: "ROLE_MANAGER", // 매니저 이상 접근
+  //       note: "업무 담당자 배정 기능 (관리자 전용, 추후 검토)",
+  //     },
+  //   ],
+  // },
 ];

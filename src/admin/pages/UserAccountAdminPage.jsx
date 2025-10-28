@@ -37,7 +37,7 @@ const UserAccountAdminPage = () => {
   };
   const handleUnlock = async (userId) => {
   try {
-      const res = await axiosInstance.post(`/users/${userId}/unlock`);
+      const res = await axiosInstance.post(`/admin/users/${userId}/unlock`);
       message.success(res.data.message);
       fetchUsers();
     } catch (err) {
@@ -68,10 +68,18 @@ const UserAccountAdminPage = () => {
       dataIndex: "username",
       key: "username",
       filteredValue: [search],
-      onFilter: (value, record) =>
-        record.username.toLowerCase().includes(value.toLowerCase()) ||
-        record.empName.toLowerCase().includes(value.toLowerCase()) ||
-        (record.deptName && record.deptName.toLowerCase().includes(value.toLowerCase())),
+      onFilter: (value, record) => {
+        const keyword = value.toLowerCase();
+        const username = (record.username || "").toLowerCase();
+        const empName = (record.empName || "").toLowerCase();
+        const deptName = (record.deptName || "").toLowerCase();
+
+      return (
+        username.includes(keyword) ||
+        empName.includes(keyword) ||
+        deptName.includes(keyword)
+      );
+    },
     },
     {
       title: "이름",
