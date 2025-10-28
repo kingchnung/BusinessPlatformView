@@ -79,7 +79,7 @@ const ProjectListPage = () => {
       render: (text) => text || <Tag color="default">미지정</Tag>,
     },
     {
-      title: "PM (부서장)",
+      title: "PM ",
       dataIndex: "pmId",
       key: "pmId",
       render: (pmId) => getPmName(pmId),

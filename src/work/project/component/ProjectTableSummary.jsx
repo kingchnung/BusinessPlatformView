@@ -1,20 +1,46 @@
+import React, { useMemo } from "react";
 import { Table, Typography, Tag } from "antd";
 import { useNavigate } from "react-router-dom";
-import { useEmployees } from "../../../hr/hooks/useEmployees"; // ✅ 직원 데이터 훅
-import dayjs from "dayjs";
-import { getManagerNameByDeptId } from "../../../hr/util/getmanagerName";
+import { useEmployees } from "../../../hr/hooks/useEmployees";
 import { useDepartments } from "../../../hr/hooks/useDepartments";
+import dayjs from "dayjs";
 
 const { Text } = Typography;
 
 const ProjectTableSummary = ({ projects = [], month }) => {
   const navigate = useNavigate();
-  const { employees, loading: empLoading } = useEmployees(); // ✅ 직원 전체 목록 불러오기
-  const { departments, loading: deptLoading} = useDepartments();
-
+  const { employees, loading: empLoading } = useEmployees();
+  const { departments, loading: deptLoading } = useDepartments();
 
   const loading = empLoading || deptLoading;
-  
+
+  // ✅ 부서/직원 맵 생성
+  const { deptMap, empMap } = useMemo(() => {
+    const dMap = new Map((departments || []).map((d) => [d.deptId, d]));
+    const eMap = new Map((employees || []).map((e) => [e.empId, e]));
+    return { deptMap: dMap, empMap: eMap };
+  }, [departments, employees]);
+
+  // ✅ 팀장/PM 이름 계산 로직
+  const resolveLeaderName = (record) => {
+    // 1️⃣ 백엔드가 준 pmName이 있으면 그대로 사용
+    if (record?.pmName) return record.pmName;
+
+    // 2️⃣ pmId가 있으면 해당 직원 이름 표시
+    if (record?.pmId && empMap.has(record.pmId)) {
+      return empMap.get(record.pmId)?.empName || null;
+    }
+
+    // 3️⃣ 부서 managerId로 fallback
+    const deptId = record?.department?.deptId;
+    const managerId = deptMap.get(deptId)?.managerId;
+    if (managerId && empMap.has(managerId)) {
+      return empMap.get(managerId)?.empName || null;
+    }
+
+    return null;
+  };
+
   const columns = [
     {
       title: "프로젝트명",
@@ -37,15 +63,15 @@ const ProjectTableSummary = ({ projects = [], month }) => {
       render: (text) => text || <Tag color="default">미지정</Tag>,
     },
     {
-      title: "팀장",
+      title: "PM",
       key: "leader",
       render: (_, record) => {
-        const deptId = record.department?.deptId;
-        const leaderName = getManagerNameByDeptId(deptId, departments, employees); // ✅ deptId로 변경
-        return leaderName && leaderName !== "미등록" ? (
-        <Text>{leaderName}</Text>
+        if (loading) return <Tag>로딩중</Tag>;
+        const leaderName = resolveLeaderName(record);
+        return leaderName ? (
+          <Text>{leaderName}</Text>
         ) : (
-        <Tag color="default">미등록</Tag>
+          <Tag color="default">미등록</Tag>
         );
       },
     },
