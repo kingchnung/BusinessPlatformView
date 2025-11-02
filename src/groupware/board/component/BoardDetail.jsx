@@ -186,7 +186,10 @@ const BoardDetail = () => {
         }
       >
         <p>
-          <b>작성자:</b> {board.authorName}
+          <b>작성자:</b>{" "}
+          {board.boardType === "SUGGESTION" || board.anonymous
+            ? "익명"
+            : board.authorName}
         </p>
         <Divider />
         <div style={{ whiteSpace: "pre-wrap", marginBottom: 24 }}>

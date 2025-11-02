@@ -14,6 +14,18 @@ export const adminMenuConfig = [
         path: "/admin/departments",
         role: "ROLE_ADMIN",
       },
+      {
+        key: "/admin/system/roles",
+        label: "역할 관리",
+        path: "/admin/system/roles",
+        role: "ROLE_ADMIN",
+      },
+      {
+        key: "/admin/system/permissions",
+        label: "권한 관리",
+        path: "/admin/system/permissions",
+        role: "ROLE_ADMIN",
+      },
       // { key: '/admin/users', label: '사용자 관리', path: '/admin/users', role: 'ROLE_ADMIN' },
     ],
   },
@@ -29,33 +41,12 @@ export const adminMenuConfig = [
         key: "/admin/baseinfo/grades",
         label: "직급 관리",
         path: "/admin/baseinfo/grades", // 미정
+        role: "ROLE_ADMIN",
       },
       {
         key: "/admin/baseinfo/positions",
         label: "직위 관리",
         path: "/admin/baseinfo/positions", // 미정
-      },
-    ],
-  },
-
-  // -------------------------
-  // ④ 시스템 관리 (어드민 전용)
-  // -------------------------
-  {
-    key: "system",
-    label: "시스템 관리",
-    role: "ROLE_ADMIN",
-    children: [
-      {
-        key: "/admin/system/roles",
-        label: "역할 관리",
-        path: "/admin/system/roles",
-        role: "ROLE_ADMIN",
-      },
-      {
-        key: "/admin/system/permissions",
-        label: "권한 관리",
-        path: "/admin/system/permissions",
         role: "ROLE_ADMIN",
       },
     ],
